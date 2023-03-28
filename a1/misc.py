@@ -2,10 +2,23 @@
 import numpy as np
 import pickle
 
+def softMax(S):
+    """
+    Parameters
+    ----------
+    S : dxN score matrix
+
+    Returns
+    -------
+    S : dxN score matrix w. applied softmax activation
+    """
+    S = np.exp(S)
+    return S / np.sum(S, axis=0)
+
 def oneHotEncode(k):
     return np.array([[
-               1 if idx == label else 0 for idx in range(10)]
-                for label in k]
+        1 if idx == label else 0 for idx in range(10)]
+         for label in k]
     )
 
 def getCifar(fpath):

@@ -1,7 +1,5 @@
 
-# get dependencies
 import os
-import pickle
 import numpy as np
 
 # get files
@@ -26,3 +24,9 @@ std_train  = np.std(X_train, axis=0)
 X_train = (X_train - mean_train) / std_train
 X_test  = (X_test - mean_train) / std_train
 X_val   = (X_val - mean_train) / std_train
+
+### 3
+linearModel = linearClassifier(
+    K=Y_train.shape[1], 
+    d=X_train.shape[1]
+)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # get files
 from model import linearClassifier
-from misc import getCifar
+from misc import getCifar, imgFlip
 
 # define paths
 home_path = os.path.dirname(os.getcwd())
@@ -36,9 +36,15 @@ del X_trainAdd, k_trainAdd, Y_trainAdd
 X_test, k_test, Y_test    = getCifar(data_path, 'test_batch')
 
 # get validation data
-X_train, X_val = X_train[:-2000], X_train[-2000:]
-k_train, k_val = k_train[:-2000], k_train[-2000:]
-Y_train, Y_val = Y_train[:-2000], Y_train[-2000:]
+X_train, X_val = X_train[:-1000], X_train[-1000:]
+k_train, k_val = k_train[:-1000], k_train[-1000:]
+Y_train, Y_val = Y_train[:-1000], Y_train[-1000:]
+
+# flip training images w. probability 0.5
+X_train = imgFlip(
+    X=X_train, 
+    prob=0.01
+)
 
 ### 2
 # whiten w. training data

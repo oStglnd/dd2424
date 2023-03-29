@@ -2,7 +2,7 @@
 import numpy as np
 import pickle
 
-def softMax(S):
+def softMax(S: np.array) -> np.array:
     """
     Parameters
     ----------
@@ -15,24 +15,43 @@ def softMax(S):
     S = np.exp(S)
     return S / np.sum(S, axis=0)
 
-def oneHotEncode(k):
+def oneHotEncode(k: np.array) -> np.array:
+    """
+    Parameters
+    ----------
+    k : Nx1 label vector
+
+    Returns
+    -------
+    Y: NxK one-hot encoded label matrix
+    """
     return np.array([[
         1 if idx == label else 0 for idx in range(10)]
          for label in k]
     )
 
-def getCifar(fpath):
+def getCifar(fpath: str) -> (np.array, np.array, np.array):
+    """
+    Parameters
+    ----------
+    fpath : str
+    
+    Returns
+    -------
+    X: Nxd data matrix
+    k: Nx1 label vector
+    Y: NxK one-hot encoded matrix
+    """
+    # open batch w. pickle
     with open(fpath, 'rb') as fo:
         batch = pickle.load(fo, encoding='bytes')
         
-        # data_dict[file] = np.reshape(
-        #     a=batch[b'data'],
-        #     newshape=(10000,32,32,3)
-        # )
+    # extract data and convert to numPy arrays
     X    = np.array(batch[b'data'])
     k    = np.array(batch[b'labels'])
     Y    = oneHotEncode(k)
         
+    # delete batch from memory
     del batch
     
     return X, k, Y

@@ -43,7 +43,8 @@ W_grads, b_grads = linearModel.computeGrads(
 # W_gradsNum, b_gradsNum = linearModel.computeGradsNumerical(
 #     X=X_train[:100], 
 #     Y=Y_train[:100], 
-#     lambd=0.1
+#     lambd=0.1,
+#   eps = 1e-5
 # )
 
 # ### test gradient diff

@@ -30,7 +30,10 @@ def oneHotEncode(k: np.array) -> np.array:
          for label in k]
     )
 
-def getCifar(fpath: str) -> (np.array, np.array, np.array):
+def getCifar(
+        fpath: str, 
+        fname: str or list
+    ) -> (np.array, np.array, np.array):
     """
     Parameters
     ----------
@@ -43,7 +46,7 @@ def getCifar(fpath: str) -> (np.array, np.array, np.array):
     Y: NxK one-hot encoded matrix
     """
     # open batch w. pickle
-    with open(fpath, 'rb') as fo:
+    with open(fpath + fname, 'rb') as fo:
         batch = pickle.load(fo, encoding='bytes')
         
     # extract data and convert to numPy arrays

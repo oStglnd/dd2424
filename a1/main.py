@@ -13,9 +13,32 @@ data_path = home_path + '\\data\\a1\\'
 plot_path = home_path + '\\plots\\a1\\'
 
 ###1
-X_train, k_train, Y_train = getCifar(data_path + 'data_batch_1')
-X_val, k_val, Y_val       = getCifar(data_path + 'data_batch_2')
-X_test, k_test, Y_test    = getCifar(data_path + 'test_batch')
+train_files = [
+    'data_batch_1',
+    'data_batch_2',
+    'data_batch_3',
+    'data_batch_4',
+    'data_batch_5'
+]
+
+X_train, k_train, Y_train = getCifar(data_path, train_files[0])
+for file in train_files[1:]:
+    X_trainAdd, k_trainAdd, Y_trainAdd = getCifar(data_path, file)
+    
+    X_train = np.concatenate((X_train, X_trainAdd), axis=0)
+    k_train = np.concatenate((k_train, k_trainAdd), axis=0)
+    Y_train = np.concatenate((Y_train, Y_trainAdd), axis=0)
+
+# delete placeholders
+del X_trainAdd, k_trainAdd, Y_trainAdd
+
+# get test data
+X_test, k_test, Y_test    = getCifar(data_path, 'test_batch')
+
+# get validation data
+X_train, X_val = X_train[:-2000], X_train[-2000:]
+k_train, k_val = k_train[:-2000], k_train[-2000:]
+Y_train, Y_val = Y_train[:-2000], Y_train[-2000:]
 
 ### 2
 # whiten w. training data
@@ -53,14 +76,14 @@ W_grads, b_grads = linearModel.computeGrads(
 
 
 ### train model
-lambd       = 1.0
+lambd       = 0.1
 n_batch     = 100
 eta         = 0.001
 n_epochs    = 40
 
 trainLoss, valLoss, testAcc = [], [], []
 for epoch in range(n_epochs):
-    for i in range(10000 // n_batch):
+    for i in range(len(X_train) // n_batch):
         X_trainBatch = X_train[i*n_batch:i*n_batch+n_batch]
         Y_trainBatch = Y_train[i*n_batch:i*n_batch+n_batch]
         

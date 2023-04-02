@@ -58,39 +58,3 @@ def getCifar(
     del batch
     
     return X, k, Y
-        
-def imgFlip(X: np.array, prob: float) -> np.array:
-    """
-    Parameters
-    ----------
-    X : nxd flattened img. array
-    angle : int
-
-    Returns
-    -------
-    X : nxd shuffled, flattened img. array w. some flipped inputs
-    """
-    # get shape
-    n, d = X.shape
-    
-    # get sampls along idx axis
-    # and convert to boolean array
-    idxs = np.random.rand(n) > prob
-    
-    # split data
-    X, X_flipped = X[idxs], X[~idxs]
-    N = len(X_flipped)
-    
-    # flip selected data
-    X_flipped = X_flipped.reshape((N, 3, 32, 32))
-    X_flipped = X_flipped.transpose(0, 2, 3, 1)
-    X_flipped = np.flip(X_flipped, axis=2)
-    X_flipped = X_flipped.transpose(0, 3, 1, 2)
-    
-    # concatenate back into one array
-    X = np.concatenate((
-        X, 
-        X_flipped.reshape((N, d))
-    ))
-    
-    return X

@@ -90,7 +90,7 @@ class linearClassifier:
             r = lambd * np.sum(np.square(self.W))
         else:
             l = 1 / D * sum([multBCE(P[:, i], Y[i, :], self.K) for i in range(D)]) 
-            r = 0
+            r = lambd * np.sum(np.square(self.W))
             
         return l, l + r
     
@@ -144,14 +144,19 @@ class linearClassifier:
         W_grads = 1 / D * np.matmul(g, X)
         b_grads = 1 / D * np.sum(g, axis=1)
         
-        # model dependent changes
-        if self.activation == 'softmax':
-            W_grads += 2 * lambd * self.W
-        else:
+        # # model dependent changes
+        # if self.activation == 'softmax':
+        #     W_grads += 2 * lambd * self.W
+        # else:
+        #     W_grads *= self.K**-1
+        #     b_grads *= self.K**-1
+    
+        if self.activation == 'sigmoid':
             W_grads *= self.K**-1
             b_grads *= self.K**-1
     
-        
+        W_grads += 2 * lambd * self.W
+    
         return W_grads, np.expand_dims(b_grads, axis=1)
 
     def computeGradsNumerical(

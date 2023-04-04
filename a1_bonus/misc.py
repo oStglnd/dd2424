@@ -1,6 +1,7 @@
 
 import numpy as np
 import pickle
+import scipy.io as sio
 
 def softMax(S: np.array) -> np.array:
     """
@@ -57,6 +58,10 @@ def oneHotEncode(k: np.array) -> np.array:
          for label in k]
     )
 
+def saveAsMat(data, name="model"):
+    """ Used to transfer a python model to matlab """
+    sio.savemat(f'{name}.mat', {"name": "b"})
+
 def getCifar(
         fpath: str, 
         fname: str or list
@@ -85,7 +90,28 @@ def getCifar(
     del batch
     
     return X, k, Y
+ 
+def getWeightImg(
+        W: np.array
+    ) -> list:
+    """
+    Parameters
+    ----------
+    W: Kxd weight matrix
+    
+    Returns
+    -------
+    list w. "plottable" weights
+    """
+    wList = []
+    for k in range(len(W)):
         
+        img = W[k, :].reshape(3, 32, 32).transpose(1, 2, 0)
+        img = (img - np.min(img)) / (np.max(img) - np.min(img))
+        wList.append(img)
+        
+    return wList
+       
 def imgFlip(X: np.array, prob: float) -> np.array:
     """
     Parameters

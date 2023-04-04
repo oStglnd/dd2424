@@ -34,7 +34,7 @@
 			\vspace{1cm}
 			\begin{minipage}{8cm}
 				
-				I have completed both exercises for the bonus points. For the first part, I have ...
+				I have completed both parts of the bonus assignment exercises. For the first part, I have used the entirety of the training data, implemented training data augmentation, and used a decaying learning rate. I also experimented with a numer of different values for the regularization parameter. For the second part, I have derived the gradients for the multiple binary cross-entropy loss and compared the results of using the sigmoid activation with the corresponding results for the softmax.
 			\end{minipage}
 			\end{center}
 			\large\vfill
@@ -55,6 +55,27 @@
 
 \newpage
 \section*{Part I - Improving Performance of the Network}
+	For this part, I have experimented with different parameter setting while adding the improvements. I recorded the best results and the (seemingly) most stable training procedure with the following parameter settings:
+	\begin{itemize}
+		\item \texttt{batchN} = 50
+		\item \texttt{epochsN} = 50
+		\item $\lambda = 0.1$
+		\item $\eta = 0.01$
+		\item $\eta_n = 10$
+		\item $p_{\text{flip}} = 0.2$
+	\end{itemize}
+	where the $\eta_n$ corresponds to the number of epochs per decay of the learning rate. Per the assignment suggestion, I initially used a horizontal flip probability of $p = 0.5$ for the training data, performing a shuffle and flip for every epoch. However, it seems a lower flip probability works equally well and I thus settled for $p = 0.2$. As mentioned, I have also utilized all of the tranining data, reducing the validation data to a smaller subset of the training data with $N_{\text{val}} = 1000$. I also experimented with a number of different settings for the regularization parameter. It wuold seem $\lambda = 0.1$ is a fairly optimal value for training. For the above parameters, the model reaches an accuracy of $40.76$\%.
+
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=7cm]{../plots/loss_v5.png}
+		\includegraphics[width=7cm]{../plots/acc_v5.png}
+		\caption{Loss and accuracy for optimal set of parameters}
+		\vspace{0.2cm}
+		\includegraphics[width=12cm]{../plots/weights_v5.png}
+		\caption{Class-specific weights for optimal set of parameters}
+		%\includegraphics[width=7cm]{../plots/cost_v2.png}	
+	\end{figure}
 
 
 \newpage

@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 
 # get files
 from model import linearClassifier
-from misc import getCifar, getWeightImg
+from misc import getCifar, getWeightImg, saveAsMat
 
 # define paths
 home_path = os.path.dirname(os.getcwd())
 data_path = home_path + '\\data\\a1\\'
 plot_path = home_path + '\\a1\\plots\\'
+model_path = home_path + '\\a1\\models\\'
 
 # get data
 X_train, k_train, Y_train = getCifar(data_path, 'data_batch_1')
@@ -54,11 +55,11 @@ linearModel = linearClassifier(
 # print(W_gradDiffMax, b_gradDiffMax)
 
 ### train model
-version     = 'v7'
-lambd       = 0.5
+version     = 'v2'
+lambd       = 0.0
 eta         = .001
-n_batch     = 50
-n_epochs    = 100
+n_batch     = 100
+n_epochs    = 40
 
 # create lists for storing results
 trainLoss, valLoss, trainCost, valCost, testAcc = [], [], [], [], []
@@ -155,3 +156,7 @@ for img, ax in zip(wImgs, axs.flatten()):
 
 plt.savefig(plot_path + 'weights_{}.png'.format(version), bbox_inches='tight', dpi=500)
 plt.show()
+
+# save MODEL
+# saveAsMat(linearModel.W, model_path + 'model_{}_W'.format(version))
+# saveAsMat(linearModel.b, model_path + 'model_{}_b'.format(version))

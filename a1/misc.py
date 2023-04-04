@@ -1,6 +1,7 @@
 
 import numpy as np
 import pickle
+import scipy.io as sio
 
 def softMax(S: np.array) -> np.array:
     """
@@ -29,6 +30,10 @@ def oneHotEncode(k: np.array) -> np.array:
         1 if idx == label else 0 for idx in range(10)]
          for label in k]
     )
+
+def saveAsMat(data, name="model"):
+    """ Used to transfer a python model to matlab """
+    sio.savemat(f'{name}.mat', {"name": "b"})
 
 def getCifar(
         fpath: str, 

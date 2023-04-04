@@ -1,6 +1,7 @@
 
 import os
 import pickle
+import scipy.io as sio
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -31,6 +32,10 @@ def oneHotEncode(k: np.array) -> np.array:
         1 if idx == label else 0 for idx in range(10)]
          for label in k]
     )
+
+def saveAsMat(data, name="model"):
+    """ Used to transfer a python model to matlab """
+    sio.savemat(f'{name}.mat', {"name": "b"})
 
 def getCifar(
         fpath: str, 
@@ -315,6 +320,7 @@ def main():
     home_path = os.path.dirname(os.getcwd())
     data_path = home_path + '\\data\\a1\\'
     plot_path = home_path + '\\a1\\plots\\'
+    model_path = home_path + '\\a1\\models\\'
     
     # get data
     X_train, k_train, Y_train = getCifar(data_path, 'data_batch_1')
@@ -460,6 +466,10 @@ def main():
     
     #plt.savefig(plot_path + 'weights_{}.png'.format(version), dpi=500)
     plt.show()
+    
+    # save MODEL
+    # saveAsMat(linearModel.W, model_path + 'model_{}_W'.format(version))
+    # saveAsMat(linearModel.b, model_path + 'model_{}_b'.format(version))
     
 if __name__ == '__main__':
     main()

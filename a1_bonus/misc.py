@@ -39,7 +39,7 @@ def multBCE(p: np.array, y: np.array, K: int) -> np.array:
     l : multiple binary cross-entropy loss f. (p(x), y)
     """
     ones = np.ones(K)
-    l = - 1 / K * (np.dot(ones - y, np.log(ones - p)) + np.dot(y, np.log(ones - p)))
+    l = - 1 / K * (np.dot(ones - y, np.log(ones - p)) + np.dot(y, np.log(p)))
     return l
 
 def oneHotEncode(k: np.array) -> np.array:

@@ -40,12 +40,6 @@ X_train, X_val = X_train[:-1000], X_train[-1000:]
 k_train, k_val = k_train[:-1000], k_train[-1000:]
 Y_train, Y_val = Y_train[:-1000], Y_train[-1000:]
 
-# flip training images w. probability 0.5
-X_train = imgFlip(
-    X=X_train, 
-    prob=0.5
-)
-
 ### 2
 # whiten w. training data
 mean_train = np.mean(X_train, axis=0)
@@ -58,24 +52,62 @@ X_val   = (X_val - mean_train) / std_train
 ### 3
 linearModel = linearClassifier(
     K=Y_train.shape[1], 
-    d=X_train.shape[1]
+    d=X_train.shape[1],
+    # activation='sigmoid',
+    activation='softmax',
+    seed=400
 )
+
+# ###
+# W_grads, b_grads = linearModel.computeGrads(
+#     X=X_train[:100], 
+#     Y=Y_train[:100], 
+#     lambd=0.1
+# )
+
+# ###
+# W_gradsNum, b_gradsNum = linearModel.computeGradsNumerical(
+#     X=X_train[:100], 
+#     Y=Y_train[:100], 
+#     lambd=0.1,
+#   eps = 1e-5
+# )
+
+# ### test gradient diff
+# W_gradDiffMax = np.max(np.abs(W_grads - W_gradsNum))
+# b_gradDiffMax = np.max(np.abs(b_grads - b_gradsNum))
+
+# ### print gradient diff
+# print(W_gradDiffMax, b_gradDiffMax)
+# # raise SystemExit(0)
 
 ### train model
 lambd       = 0.1
-eta         = 0.1
+eta         = 0.001
 n_batch     = 100
 n_epochs    = 40
-n_decay     = 10
+n_decay     = 100
+flip_p      = 0.2
 
+# create lists for storing results
+trainLoss, valLoss, trainCost, valCost, testAcc = [], [], [], [], []
 
-trainLoss, valLoss, testAcc = [], [], []
+# create list of idxs for shuffling
+idxs = list(range(len(X_train)))
+
 for epoch in range(n_epochs):
+    # shuffle training examples
+    np.random.shuffle(idxs)
+    X_train, Y_train = X_train[idxs], Y_train[idxs]
     
+    # flip images    
+    X_train = imgFlip(X_train, prob=flip_p)
+    
+    # decay learning rate
     if epoch % n_decay == 0:
         eta *= 0.1
-        
-    #X_train = imgFlip(X_train, prob=0.5)
+    
+    # iterate over batches
     for i in range(len(X_train) // n_batch):
         X_trainBatch = X_train[i*n_batch:i*n_batch+n_batch]
         Y_trainBatch = Y_train[i*n_batch:i*n_batch+n_batch]
@@ -87,8 +119,25 @@ for epoch in range(n_epochs):
             eta=eta
         )
         
-    trainLoss.append(linearModel.computeCost(X_train, Y_train, lambd=lambd))
-    valLoss.append(linearModel.computeCost(X_val, Y_val, lambd=lambd))
+    # compute cost and loss
+    epochTrainLoss, epochTrainCost = linearModel.computeCost(
+        X_train, 
+        Y_train, 
+        lambd=lambd
+    )
+    epochValLoss, epochValCost     = linearModel.computeCost(
+        X_val, 
+        Y_val, 
+        lambd=lambd
+    )
+    
+    # store vals
+    trainLoss.append(epochTrainLoss)
+    trainCost.append(epochTrainCost)
+    valLoss.append(epochValLoss)
+    valCost.append(epochValCost)
+    
+    # compute accuracy on test set
     testAcc.append(linearModel.computeAcc(X_test, k_test))
     
     print(

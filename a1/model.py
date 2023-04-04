@@ -7,12 +7,16 @@ class linearClassifier:
     def __init__(
             self, 
             K: int, 
-            d: int
+            d: int,
+            seed: int
         ):
         
         # init weight dims
         self.K = K
         self.d = d
+        
+        # set seed
+        np.random.seed(seed)
         
         # init weights
         self.W = np.random.normal(
@@ -42,7 +46,7 @@ class linearClassifier:
         P : KxN score matrix w. softmax activation
         """
         # calculate scores
-        S = np.matmul(self.W, X.T) + self.b
+        S = self.W @ X.T + self.b
         
         # return scores w. softmax activation
         return softMax(S)
@@ -62,7 +66,8 @@ class linearClassifier:
         
         Returns
         -------
-        J : cross-entropy loss w. L2-regularization
+        l : cross entropy loss
+        J : cost, i.e. cross-entropy loss w. L2-regularization
         """
         # get size of batch
         D = len(X)
@@ -71,9 +76,9 @@ class linearClassifier:
         P = self.evaluate(X)
         
         # evaluate loss and regularization term
-        l = - 1 / D * sum([np.dot(Y[i, :], np.log(P[:, i])) for i in range(D)])
-        r = lambd * np.sum(self.W**2)
-        return  l + r
+        l = - D**-1 * np.sum(Y.T * np.log(P))
+        r = lambd * np.sum(np.square(self.W))
+        return  l, l + r
     
     def computeAcc(
             self, 
@@ -122,8 +127,8 @@ class linearClassifier:
         g = -(Y.T - P)
         
         # get weight gradients and bias gradients
-        W_grads = 1 / D * np.matmul(g, X) + 2 * lambd * self.W
-        b_grads = 1 / D * np.sum(g, axis=1)
+        W_grads = D**-1 * g @ X + 2 * lambd * self.W
+        b_grads = D**-1 * np.sum(g, axis=1)
         return W_grads, np.expand_dims(b_grads, axis=1)
 
     def computeGradsNumerical(
@@ -150,8 +155,8 @@ class linearClassifier:
         W_0, b_0 = self.W, self.b
         
         # calculate numerical gradients for W
-        W_perturb = np.zeros(W_0.shape)
-        W_gradsNum = np.zeros(W_0.shape)
+        W_perturb = np.zeros(self.W.shape)
+        W_gradsNum = np.zeros(self.W.shape)
         for i in range(self.K):
             for j in range(self.d):
                 W_perturb[i, j] = eps
@@ -160,13 +165,14 @@ class linearClassifier:
                 # and compute cost
                 W_tmp = W_0 - W_perturb
                 self.W = W_tmp
-                cost = self.computeCost(X, Y, lambd)
+                _, cost1 = self.computeCost(X, Y, lambd)
                 
                 # perturb weight vector positively
                 # and compute cost
                 W_tmp = W_0 + W_perturb
                 self.W = W_tmp
-                lossDiff = (self.computeCost(X, Y, lambd) - cost) / (2 * eps)
+                _, cost2 = self.computeCost(X, Y, lambd)
+                lossDiff = (cost2 - cost1) / (2 * eps)
                 
                 # get numerical grad f. W[i, j]
                 W_gradsNum[i, j] = lossDiff
@@ -185,13 +191,14 @@ class linearClassifier:
             # and compute cost
             b_tmp = b_0 - b_perturb
             self.b = b_tmp
-            cost = self.computeCost(X, Y, lambd)
+            _, cost1 = self.computeCost(X, Y, lambd)
             
             # perturb weight vector positively
             # and compute cost
             b_tmp = b_0 + b_perturb
             self.b = b_tmp
-            lossDiff = (self.computeCost(X, Y, lambd) - cost) / (2 * eps)
+            _, cost2 = self.computeCost(X, Y, lambd)
+            lossDiff = (cost2 - cost1) / (2 * eps)
             
             # get numerical grad f. b[i]
             b_gradsNum[i] = lossDiff
@@ -200,7 +207,7 @@ class linearClassifier:
         # reset bias vector
         self.b = b_0
         
-        return W_gradsNum, np.squeeze(b_gradsNum)
+        return W_gradsNum, b_gradsNum
     
     def train(
             self, 
@@ -217,10 +224,9 @@ class linearClassifier:
         lambd: regularization parameter
         eta: learning rate
         """
-        
         # get grads from self.computeGrads and update weights
         # w. GD and learning parameter eta
         W_grads, b_grads = self.computeGrads(X, Y, lambd)
-        self.W = self.W - eta * W_grads
-        self.b = self.b - eta * b_grads
+        self.W -= eta * W_grads
+        self.b -= eta * b_grads
         

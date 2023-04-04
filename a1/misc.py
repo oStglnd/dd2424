@@ -58,3 +58,25 @@ def getCifar(
     del batch
     
     return X, k, Y
+
+def getWeightImg(
+        W: np.array
+    ) -> list:
+    """
+    Parameters
+    ----------
+    W: Kxd weight matrix
+    
+    Returns
+    -------
+    list w. "plottable" weights
+    """
+    wList = []
+    for k in range(len(W)):
+        
+        img = W[k, :].reshape(3, 32, 32).transpose(1, 2, 0)
+        img = (img - np.min(img)) / (np.max(img) - np.min(img))
+        wList.append(img)
+        
+    return wList
+    

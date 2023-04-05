@@ -54,8 +54,8 @@ X_val   = (X_val - mean_train) / std_train
 linearModel = linearClassifier(
     K=Y_train.shape[1], 
     d=X_train.shape[1],
+    # activation='sigmoid',
     activation='sigmoid',
-    # activation='softmax',
     seed=400
 )
 
@@ -83,13 +83,14 @@ linearModel = linearClassifier(
 # # raise SystemExit(0)
 
 ### train model
-version     = 'v8'
+version     = 'v9.2'
+func        = 'sigmoid'
 lambd       = 0.1
-eta         = 0.05
+eta         = 0.01
 n_batch     = 100
 n_epochs    = 50
-n_decay     = 100
-flip_p      = 0.2
+n_decay     = 50
+flip_p      = 0.5
 
 # create lists for storing results
 trainLoss, valLoss, trainCost, valCost, testAcc = [], [], [], [], []
@@ -98,8 +99,9 @@ trainLoss, valLoss, trainCost, valCost, testAcc = [], [], [], [], []
 idxs = list(range(len(X_train)))
 
 # print out parameter settings
-print('PARAMETERS: \n\t Version: {}\n\t Lambda: {:.2f}\n\t Eta: {:.2f}\n\t N_batch: {}\n\t N_epochs: {}\n\t N_decay: {}\n\t P_flip: {:.2f}\n\n'.format(
+print('PARAMETERS: \n\t Version: {}\n\t, Activation: {}\n\t Lambda: {:.2f}\n\t Eta: {:.2f}\n\t N_batch: {}\n\t N_epochs: {}\n\t N_decay: {}\n\t P_flip: {:.2f}\n\n'.format(
     version,
+    func,
     lambd,
     eta,
     n_batch,
@@ -119,7 +121,7 @@ for epoch in range(n_epochs):
     
     # decay learning rate
     if epoch % n_decay == 0:
-        eta *= 0.1
+        eta *= 0.5
     
     # iterate over batches
     for i in range(len(X_train) // n_batch):
@@ -205,5 +207,5 @@ plt.savefig(plot_path + 'weights_{}.png'.format(version), bbox_inches='tight', d
 plt.show()
 
 # save MODEL
-saveAsMat(linearModel.W, model_path + 'model_{}_W'.format(version))
-saveAsMat(linearModel.b, model_path + 'model_{}_b'.format(version))
+# saveAsMat(linearModel.W, model_path + 'model_{}_W'.format(version))
+# saveAsMat(linearModel.b, model_path + 'model_{}_b'.format(version))

@@ -14,7 +14,9 @@ def trainNetwork(
         eta_max: float, 
         ns: int, 
         n_cycles: int, 
-        lambd: float, 
+        lambd: float,
+        m: int,
+        p_dropout: float,
         plot: bool,
         version: str
     ):
@@ -66,7 +68,8 @@ def trainNetwork(
     neuralNet = neuralNetwork(
         K = 10,
         d = 3072,
-        m = 50,
+        m = m,
+        p_dropout = p_dropout,
         seed=1
     )
     

@@ -9,6 +9,7 @@ class neuralNetwork:
             K: int, 
             d: int,
             m: int,
+            p_dropout: float,
             seed: int
         ):
         
@@ -16,6 +17,9 @@ class neuralNetwork:
         self.K = K
         self.d = d
         self.m = m
+        
+        # init dropout 
+        self.p_dropout = p_dropout
         
         # set seed
         np.random.seed(seed)
@@ -44,34 +48,6 @@ class neuralNetwork:
                 )
         }
         
-        # # init weights, layer 1
-        # self.W1 = np.random.normal(
-        #     loc=0, 
-        #     scale=1/np.sqrt(self.d), 
-        #     size=(self.m, self.d)
-        # )
-        
-        # # init bias, layer 1
-        # self.b1 = np.random.normal(
-        #     loc=0, 
-        #     scale=0.0, 
-        #     size=(self.m, 1)
-        # )
-        
-        # # init weights, layer 2
-        # self.W2 = np.random.normal(
-        #     loc=0, 
-        #     scale=1/np.sqrt(self.m), 
-        #     size=(self.K, self.m)
-        # )
-        
-        # # init bias, layer 1
-        # self.b2 = np.random.normal(
-        #     loc=0, 
-        #     scale=0.0, 
-        #     size=(self.K, 1)
-        # )
-
     def evaluate(
             self, 
             X: np.array,
@@ -86,14 +62,46 @@ class neuralNetwork:
         -------
         P : KxN score matrix w. softmax activation
         """
+        # if train:
+        #     if self.p_dropout > 0:
+        #         # get bernoulli vectors for dropout
+        #         for weight in ['W1', 'W2']:
+        #             # get index for dropout
+        #             bernIdx = np.random.binomial(
+        #                 n=1, 
+        #                 p=self.p_dropout,
+        #                 size=self.weights[weight].shape
+        #             )
+        #             self.dropoutIdx[weight] = bernIdx
+                    
+        #             # save weights w/o dropout
+        #             weightTmp = self.weights[weight].copy()
+        #             weightTmp[~bernIdx] = 0
+        #             self.weightsTmp[weight] = weightTmp
+                    
+        #             # set dropped weights to zero
+                    # self.weights[weight][bernIdx] = 0            
+        
+        # get binary mask for dropout
+        if train:
+            mask = np.random.binomial(
+                n=1,
+                p=1-self.p_dropout,
+                size=(1,self.m)
+            )
+        else:
+            mask = np.ones(shape=(1,self.m))
+            
+        # calculate forward pass
         s1 = self.weights['W1'] @ X.T + self.weights['b1'] # m x N
-        h = np.maximum(0, s1)        # m x N
+        h = np.maximum(0, s1)  # m x N
+        h = (1 - train * self.p_dropout)**-1 * mask.T * h
         s = self.weights['W2'] @ h + self.weights['b2']    # K x N
         P = softMax(s)               # K x N
         
         if not train:
             return P
-        else:
+        else:            
             return P, h, s1
     
     def predict(
@@ -289,9 +297,6 @@ class neuralNetwork:
         # get grads from self.computeGrads and update weights
         # w. GD and learning parameter eta
         grads = self.computeGrads(X, Y, lambd)
-        weights = ['W1', 'W2', 'b1', 'b2']
-        
-        for grad, weight in zip(grads, weights):
+        for grad, weight in zip(grads, self.weights):
             self.weights[weight] -= eta * grad
-        
         

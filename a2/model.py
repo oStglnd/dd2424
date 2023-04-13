@@ -44,34 +44,6 @@ class neuralNetwork:
                 )
         }
         
-        # # init weights, layer 1
-        # self.W1 = np.random.normal(
-        #     loc=0, 
-        #     scale=1/np.sqrt(self.d), 
-        #     size=(self.m, self.d)
-        # )
-        
-        # # init bias, layer 1
-        # self.b1 = np.random.normal(
-        #     loc=0, 
-        #     scale=0.0, 
-        #     size=(self.m, 1)
-        # )
-        
-        # # init weights, layer 2
-        # self.W2 = np.random.normal(
-        #     loc=0, 
-        #     scale=1/np.sqrt(self.m), 
-        #     size=(self.K, self.m)
-        # )
-        
-        # # init bias, layer 1
-        # self.b2 = np.random.normal(
-        #     loc=0, 
-        #     scale=0.0, 
-        #     size=(self.K, 1)
-        # )
-
     def evaluate(
             self, 
             X: np.array,

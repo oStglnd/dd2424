@@ -22,6 +22,10 @@ eta_max = 1e-1
 ns      = 2 * 45000 // n_batch
 n_cycles = 2
 
+# specify network
+m = 200
+p_dropout = 0.4
+
 # set lambda values
 l_min = -5
 l_max = -1
@@ -35,6 +39,8 @@ saveDict = {
         'eta_max':eta_max,
         'ns':ns,
         'n_cycles':n_cycles,
+        'm':m,
+        'p_dropout':p_dropout
 }}
 
 # iterate over possible lambda values
@@ -61,6 +67,8 @@ for v in range(20):
         eta_max=eta_max,
         ns=ns,
         n_cycles=n_cycles,
+        m=m,
+        p_dropout=p_dropout,
         lambd=lambd,
         version=version,
         plot=True
@@ -74,6 +82,6 @@ for v in range(20):
         'accHist':accHist
     }
     
-# dump results to JSON
-with open(fpath, 'w') as fp:
-    json.dump(saveDict, fp)
+    # dump results to JSON
+    with open(fpath, 'w') as fp:
+        json.dump(saveDict, fp)

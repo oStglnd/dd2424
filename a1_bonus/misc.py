@@ -137,11 +137,7 @@ def imgFlip(X: np.array, prob: float) -> np.array:
     # flip selected data
     X_flipped = X_flipped.reshape((N, 3, 32, 32))
     X_flipped = np.flip(X_flipped, axis=3).reshape((N, d))
-    
-    # X_flipped = X_flipped.transpose(0, 2, 3, 1)
-    # X_flipped = np.flip(X_flipped, axis=2)
-    # X_flipped = X_flipped.transpose(0, 3, 1, 2).reshape((N, d))
-    
+
     # concatenate back into one array
     X[idxs] = X_flipped
     

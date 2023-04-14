@@ -78,3 +78,89 @@ def cyclicLearningRate(
         eta = etaMax - (timeStep - (2 * l + 1) * stepSize) / stepSize * (etaMax - etaMin)
     
     return eta
+
+def imgFlip(X: np.array, prob: float) -> np.array:
+    """
+    Parameters
+    ----------
+    X : nxd flattened img. array
+    angle : int
+
+    Returns
+    -------
+    X : nxd flattened img. array w. some flipped inputs
+    """
+    # get shape
+    n, d = X.shape
+    
+    # get sampls along idx axis
+    # and convert to boolean array
+    idxs = np.random.rand(n) < prob
+    
+    # split data
+    X_flipped = X[idxs].copy()
+    N = len(X_flipped)
+    
+    # flip selected data
+    X_flipped = X_flipped.reshape((N, 3, 32, 32))
+    X_flipped = np.flip(X_flipped, axis=3).reshape((N, d))
+
+    # concatenate back into one array
+    X[idxs] = X_flipped
+    
+    # delete flipped imgs
+    del X_flipped
+    
+    return X
+
+def imgTransl(X: np.array, prob: float) -> np.array:
+    """
+    Parameters
+    ----------
+    X : nxd flattened img. array
+    angle : int
+
+    Returns
+    -------
+    X : nxd flattened img. array w. some translated inputs
+    """
+    # get shape
+    n, d = X.shape
+    
+    # get sampls along idx axis
+    # and convert to boolean array
+    idxs = np.random.rand(n) < prob
+    
+    # split data
+    X_translated = X[idxs].copy()
+    N = len(X_translated)
+    
+    # translate selected data
+    X_translated = X_translated.reshape((N, 3, 32, 32))
+
+    # randomize rollIdx and roll img
+    rollIdxV = np.random.choice(np.arange(-3, 3))
+    rollIdxH = np.random.choice(np.arange(-3, 3))
+    X_translated = np.roll(
+        X_translated, 
+        (rollIdxV, rollIdxH),
+        axis=[2, 3]
+    )
+    
+    # blacken removed pixels
+    if (rollIdxV >= 0) and (rollIdxH >= 0):
+        X_translated[:, :, :rollIdxH, -rollIdxV:] = 0
+    elif (rollIdxV >= 0) and (rollIdxH < 0):
+        X_translated[:, :, :rollIdxH, :rollIdxV] = 0
+    elif (rollIdxV < 0) and (rollIdxH >= 0):
+        X_translated[:, :, -rollIdxH:, -rollIdxV:] = 0
+    else:
+        X_translated[:, :, -rollIdxH:, :rollIdxV] = 0
+
+    # concatenate back into one array
+    X[idxs] = X_translated.reshape((N, d))
+    
+    # delete flipped imgs
+    del X_translated
+    
+    return X

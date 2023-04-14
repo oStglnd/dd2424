@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # get files
 from model import neuralNetwork
-from misc import getCifar, cyclicLearningRate
+from misc import getCifar, imgFlip, imgTransl, cyclicLearningRate
 
 def trainNetwork(
         n_epochs: int, 
@@ -17,6 +17,9 @@ def trainNetwork(
         lambd: float,
         m: int,
         p_dropout: float,
+        p_flip: float,
+        p_transl: float,
+        optimizer: str,
         plot: bool,
         version: str
     ):
@@ -70,6 +73,7 @@ def trainNetwork(
         d = 3072,
         m = m,
         p_dropout = p_dropout,
+        optimizer = optimizer,
         seed=1
     )
     
@@ -88,25 +92,37 @@ def trainNetwork(
         np.random.shuffle(idxs)
         X_train, Y_train, k_train = X_train[idxs], Y_train[idxs], k_train[idxs]
         
+        # flip images
+        if p_flip > 0:
+            X_train = imgFlip(X_train, prob=p_flip)
+            
+        # translate images
+        if p_transl > 0:
+            X_train = imgTransl(X_train, prob=p_transl)
+        
         # iterate over batches
         for i in range(len(X_train) // n_batch):
             X_trainBatch = X_train[i*n_batch:(i+1)*n_batch]
             Y_trainBatch = Y_train[i*n_batch:(i+1)*n_batch]
             
             # update eta
-            eta = cyclicLearningRate(
-                etaMin=eta_min, 
-                etaMax=eta_max, 
-                stepSize=ns, 
-                timeStep=t
-            )        
+            if optimizer == 'Adam':
+                eta = 0.001
+            else:
+                eta = cyclicLearningRate(
+                    etaMin=eta_min, 
+                    etaMax=eta_max, 
+                    stepSize=ns, 
+                    timeStep=t
+                )
             
             # run training, GD update
             neuralNet.train(
                 X=X_trainBatch, 
                 Y=Y_trainBatch, 
                 lambd=lambd, 
-                eta=eta
+                eta=eta,
+                t=epoch
             )
             
             # append to list of eta and update time step

@@ -21,10 +21,14 @@ eta_min = 1e-5
 eta_max = 1e-1
 ns      = 2 * 45000 // n_batch
 n_cycles = 2
+p_flip = 0.2
+p_transl = 0.05
 
 # specify network
-m = 200
-p_dropout = 0.4
+m = 100
+p_dropout = 0.2
+optimizer = 'Adam'
+# optimizer = ''
 
 # set lambda values
 l_min = -5
@@ -40,7 +44,10 @@ saveDict = {
         'ns':ns,
         'n_cycles':n_cycles,
         'm':m,
-        'p_dropout':p_dropout
+        'p_dropout':p_dropout,
+        'p_flip':p_flip,
+        'p_transl':p_transl,
+        'optimizer':optimizer
 }}
 
 # iterate over possible lambda values
@@ -53,7 +60,7 @@ for v in range(20):
     # get version
     version = 'v' + str(v)
     
-    print('\n TRAIN NETWORK ({}): cycles: {}, lambda: {:.3f}\n'.format(
+    print('\n TRAIN NETWORK ({}): cycles: {}, lambda: {:.5f}\n'.format(
         version,
         n_cycles,
         lambd
@@ -69,6 +76,9 @@ for v in range(20):
         n_cycles=n_cycles,
         m=m,
         p_dropout=p_dropout,
+        p_flip=p_flip,
+        p_transl=p_transl,
+        optimizer=optimizer,
         lambd=lambd,
         version=version,
         plot=True

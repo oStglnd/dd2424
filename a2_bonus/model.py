@@ -3,6 +3,51 @@
 import numpy as np
 from misc import softMax
 
+class AdamOpt:
+    def __init__(
+            self,
+            beta1: float,
+            beta2: float,
+            eps: float,
+            weights: list
+        ):
+        # save init params
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        
+        # init dicts for saving moments
+        self.m, self.v = {}, {}
+        
+        # init moments
+        for name, weight in weights.items():
+            self.m[name] = np.zeros(weight.shape)
+            self.v[name] = np.zeros(weight.shape)
+            
+    def calcMoment(self, beta, moment, grad):
+        newMoment = beta * moment + (1 - beta) * grad
+        return newMoment
+    
+    def step(self, weight, grad, t):     
+        # update fist moment and correct bias
+        self.m[weight] = self.calcMoment(
+            self.beta1 ** t,
+            self.m[weight], 
+            grad
+        )
+        
+        # update second moment and correct bias
+        self.v[weight] = self.calcMoment(
+            self.beta2 ** t,
+            self.v[weight], 
+            np.square(grad)
+        )
+        
+        mCorrected = self.m[weight] / (1 - self.beta1 ** t)
+        vCorrected = self.v[weight] / (1 - self.beta2 ** t)
+        stepUpdate = mCorrected / (np.sqrt(vCorrected) + self.eps)
+        return stepUpdate
+
 class neuralNetwork:
     def __init__(
             self, 
@@ -10,6 +55,7 @@ class neuralNetwork:
             d: int,
             m: int,
             p_dropout: float,
+            optimizer: str,
             seed: int
         ):
         
@@ -20,6 +66,9 @@ class neuralNetwork:
         
         # init dropout 
         self.p_dropout = p_dropout
+        
+        # init optimizer
+        self.optimizer = optimizer
         
         # set seed
         np.random.seed(seed)
@@ -48,6 +97,15 @@ class neuralNetwork:
                 )
         }
         
+        # init optimizer
+        if self.optimizer == 'Adam':
+            self.opt = AdamOpt(
+                beta1=0.9,
+                beta2=0.999,
+                eps=1e-8,
+                weights=self.weights
+            )
+        
     def evaluate(
             self, 
             X: np.array,
@@ -61,29 +119,9 @@ class neuralNetwork:
         Returns
         -------
         P : KxN score matrix w. softmax activation
-        """
-        # if train:
-        #     if self.p_dropout > 0:
-        #         # get bernoulli vectors for dropout
-        #         for weight in ['W1', 'W2']:
-        #             # get index for dropout
-        #             bernIdx = np.random.binomial(
-        #                 n=1, 
-        #                 p=self.p_dropout,
-        #                 size=self.weights[weight].shape
-        #             )
-        #             self.dropoutIdx[weight] = bernIdx
-                    
-        #             # save weights w/o dropout
-        #             weightTmp = self.weights[weight].copy()
-        #             weightTmp[~bernIdx] = 0
-        #             self.weightsTmp[weight] = weightTmp
-                    
-        #             # set dropped weights to zero
-                    # self.weights[weight][bernIdx] = 0            
-        
+        """       
         # get binary mask for dropout
-        if train:
+        if train and (self.p_dropout > 0):
             mask = np.random.binomial(
                 n=1,
                 p=1-self.p_dropout,
@@ -284,7 +322,8 @@ class neuralNetwork:
             X: np.array, 
             Y: np.array, 
             lambd: float, 
-            eta: float
+            eta: float, 
+            t: int
         ):
         """
         Parameters
@@ -298,5 +337,10 @@ class neuralNetwork:
         # w. GD and learning parameter eta
         grads = self.computeGrads(X, Y, lambd)
         for grad, weight in zip(grads, self.weights):
-            self.weights[weight] -= eta * grad
+            
+            if self.optimizer == 'Adam':
+                stepUpdate = self.opt.step(weight, grad, t)
+                self.weights[weight] -= eta * stepUpdate
+            else:
+                self.weights[weight] -= eta * grad
         

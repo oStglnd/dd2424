@@ -70,6 +70,18 @@ def cyclicLearningRate(
         stepSize: float,
         timeStep: int
     ) -> float:
+    """
+    Parameters
+    ----------
+    etaMin : minumum learning rate
+    etaMax : maximum learning rate
+    stepSize : step size
+    timeStep : current step
+    
+    Returns
+    -------
+    eta : current learning rate
+    """
     l = timeStep // (2 * stepSize)
     
     if (2 * l * stepSize <= timeStep <= (2 * l + 1) * stepSize):

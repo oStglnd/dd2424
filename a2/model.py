@@ -188,7 +188,7 @@ class neuralNetwork:
             X: np.array, 
             Y: np.array, 
             lambd: float,
-            eps: float
+            eps: float,
         ) -> np.array:
         """
         Parameters
@@ -216,6 +216,8 @@ class neuralNetwork:
             
             for i in range(self.K):
                 for j in range(min(shape[1], 100)):
+            # for i in range(shape[0]):
+            #     for j in range(shape[1]):
             
                     # add perturbation
                     w_perturb[i, j] = eps

@@ -96,7 +96,7 @@
 %
 In short, the turning up the regularization parameter clearly helps a lot in this particular case. The performance on the testing data gets significantly better with $\lambda > 0$. However, there are also other aspects of the training procedure which are clearly important to take into account, such as the learning rate, the batch size and the number of epochs. That is, performance does not increase in proportion to $\lambda$, since a lower $\lambda$ combined with e.g. a lower batch size actually achieves an even better result. It is also important to consider the learning rate, for which we clearly need a lower value in order to achieve a good result.
 
-	\begin{center}
+	\begin{center}	
 	\begin{tabular}{|l|l|l|l|c|}
 		\hline
 		\texttt{batchN} & \texttt{epochsN} & $\eta$ & $\lambda$ & \text{Accuracy}, \% \\ \hline

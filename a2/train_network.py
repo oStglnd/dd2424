@@ -151,31 +151,34 @@ def trainNetwork(
         steps = [step * (ns / 10) for step in range(len(costHist['train']))]
         
         # plot COST function
-        plt.plot(steps, costHist['train'], 'b', linewidth=1.5, alpha=1.0, label='Training')
+        plt.plot(steps, costHist['train'], 'g', linewidth=1.5, alpha=1.0, label='Training')
         plt.plot(steps, costHist['val'], 'r', linewidth=1.5, alpha=1.0, label='Validation')
         
         plt.xlim(0, steps[-1])
+        plt.ylim(0, max(costHist['train']) * 1.5)
         plt.xlabel('Step')
         plt.ylabel('Cost', rotation=0, labelpad=20)
-        plt.title('Cost')
+        #plt.title('Cost')
         plt.legend(loc='upper right')
         plt.savefig(plot_path + 'cost_{}.png'.format(version), dpi=200)
         plt.show()
         
         # plot LOSS function
-        plt.plot(steps, lossHist['train'], 'b', linewidth=1.5, alpha=1.0, label='Training')
+        plt.plot(steps, lossHist['train'], 'g', linewidth=1.5, alpha=1.0, label='Training')
         plt.plot(steps, lossHist['val'], 'r', linewidth=1.5, alpha=1.0, label='Validation')
         
         plt.xlim(0, steps[-1])
+        plt.ylim(0, max(lossHist['train']) * 1.5)
         plt.xlabel('Step')
         plt.ylabel('Loss', rotation=0, labelpad=20)
-        plt.title('Loss')
+        #plt.title('Loss')
         plt.legend(loc='upper right')
         plt.savefig(plot_path + 'loss_{}.png'.format(version), dpi=200)
         plt.show()
         
         # plot ACCURACY
-        plt.plot(steps, [acc * 100 for acc in accHist], 'm', linewidth=2.5, alpha=1.0)
+        plt.plot(steps, [acc * 100 for acc in accHist], 'b', linewidth=2.5, alpha=1.0)
+        plt.ylim(0,70)
         plt.xlim(0, steps[-1])
         plt.xlabel('Step')
         plt.ylabel('%', rotation=0, labelpad=20)

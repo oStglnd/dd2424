@@ -23,8 +23,8 @@ ns      = 2 * 45000 // n_batch
 n_cycles = 2
 
 # set lambda values
-l_min = -5
-l_max = -1
+l_min = -4
+l_max = -2
 
 # init dictionary for saving
 saveDict = {

@@ -10,8 +10,8 @@ from misc import getCifar, cyclicLearningRate
 # define paths
 home_path = os.path.dirname(os.getcwd())
 data_path = home_path + '\\data\\a1\\'
-plot_path = home_path + '\\a1\\plots\\'
-model_path = home_path + '\\a1\\models\\'
+plot_path = home_path + '\\a2\\plots\\'
+model_path = home_path + '\\a2\\models\\'
 
 # get data
 X_train, k_train, Y_train = getCifar(data_path, 'data_batch_1')
@@ -36,15 +36,15 @@ neuralNet = neuralNetwork(
 
 # GRADS TEST
 W1_grads, W2_grads, b1_grads, b2_grads = neuralNet.computeGrads(
-    X=X_train[:1000], 
-    Y=Y_train[:1000], 
+    X=X_train[:10], 
+    Y=Y_train[:10], 
     lambd=0
 )
 
 # W1_gradsNum, W2_gradsNum, b1_gradsNum, b2_gradsNum = neuralNet.computeGradsNumerical(
 W1_gradsNum, W2_gradsNum, b1_gradsNum, b2_gradsNum = neuralNet.computeGradsNumerical(
-    X=X_train[:1000], 
-    Y=Y_train[:1000], 
+    X=X_train[:10], 
+    Y=Y_train[:10], 
     lambd=0,
     eps=1e-5
 ) 
@@ -66,7 +66,7 @@ print('\nGradient check: \n\t max|W1 - W1_num| = {:.10f}\
 
 # test train
 lossHist, costHist = [], []
-for epoch in range(1,  200):
+for epoch in range(1,  500):
     if epoch % 50 == 0:
         print('EPOCH {} of gradient test training, \n loss: {:.3f}'.format(
             epoch,
@@ -88,3 +88,15 @@ for epoch in range(1,  200):
     
     lossHist.append(loss)
     costHist.append(cost)
+
+# plot results
+plt.plot(lossHist, 'b', linewidth=1.5, alpha=1.0, label='Loss')
+plt.plot(costHist, 'r--', linewidth=1.5, alpha=1.0, label='Cost')
+
+plt.xlim(0, len(lossHist))
+plt.xlabel('Step')
+plt.ylabel('', rotation=0, labelpad=20)
+plt.title('Training results for small subset')
+plt.legend(loc='upper right')
+plt.savefig(plot_path + 'grad_test.png', dpi=200)
+plt.show()

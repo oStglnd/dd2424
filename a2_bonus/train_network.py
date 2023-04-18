@@ -27,7 +27,7 @@ def trainNetwork(
     # define paths
     home_path = os.path.dirname(os.getcwd())
     data_path = home_path + '\\data\\a1\\'
-    plot_path = home_path + '\\a2\\plots\\'
+    plot_path = home_path + '\\a2_bonus\\plots\\'
     
     # define fnames
     train_files = [
@@ -93,16 +93,14 @@ def trainNetwork(
         X_train, Y_train, k_train = X_train[idxs], Y_train[idxs], k_train[idxs]
         
         # flip images
-        if p_flip > 0:
-            X_train = imgFlip(X_train, prob=p_flip)
-            
-        # translate images
-        if p_transl > 0:
-            X_train = imgTransl(X_train, prob=p_transl)
+        if (p_flip > 0) or (p_transl > 0):
+            X_augm = X_train.copy()
+            X_augm = imgFlip(X_augm, prob=p_flip)
+            X_augm = imgTransl(X_augm, prob=p_transl)
         
         # iterate over batches
         for i in range(len(X_train) // n_batch):
-            X_trainBatch = X_train[i*n_batch:(i+1)*n_batch]
+            X_trainBatch = X_augm[i*n_batch:(i+1)*n_batch]
             Y_trainBatch = Y_train[i*n_batch:(i+1)*n_batch]
             
             # update eta
@@ -170,7 +168,7 @@ def trainNetwork(
         steps = [step * (ns / 10) for step in range(len(costHist['train']))]
         
         # plot COST function
-        plt.plot(steps, costHist['train'], 'b', linewidth=1.5, alpha=1.0, label='Training')
+        plt.plot(steps, costHist['train'], 'g', linewidth=1.5, alpha=1.0, label='Training')
         plt.plot(steps, costHist['val'], 'r', linewidth=1.5, alpha=1.0, label='Validation')
         
         plt.xlim(0, steps[-1])
@@ -182,7 +180,7 @@ def trainNetwork(
         plt.show()
         
         # plot LOSS function
-        plt.plot(steps, lossHist['train'], 'b', linewidth=1.5, alpha=1.0, label='Training')
+        plt.plot(steps, lossHist['train'], 'g', linewidth=1.5, alpha=1.0, label='Training')
         plt.plot(steps, lossHist['val'], 'r', linewidth=1.5, alpha=1.0, label='Validation')
         
         plt.xlim(0, steps[-1])
@@ -194,7 +192,7 @@ def trainNetwork(
         plt.show()
         
         # plot ACCURACY
-        plt.plot(steps, [acc * 100 for acc in accHist], 'm', linewidth=2.5, alpha=1.0)
+        plt.plot(steps, [acc * 100 for acc in accHist], 'b', linewidth=2.5, alpha=1.0)
         plt.xlim(0, steps[-1])
         plt.xlabel('Step')
         plt.ylabel('%', rotation=0, labelpad=20)

@@ -36,16 +36,16 @@ linearModel = linearClassifier(
 
 # ###
 # W_grads, b_grads = linearModel.computeGrads(
-#     X=X_train, 
-#     Y=Y_train, 
-#     lambd=0.0
+#     X=X_train[:50], 
+#     Y=Y_train[:50], 
+#     lambd=1.0
 # )
 
 # ###
 # W_gradsNum, b_gradsNum = linearModel.computeGradsNumerical(
-#     X=X_train, 
-#     Y=Y_train, 
-#     lambd=0.0,
+#     X=X_train[:50], 
+#     Y=Y_train[:50], 
+#     lambd=1.0,
 #   eps = 1e-5
 # )
 
@@ -55,8 +55,8 @@ linearModel = linearClassifier(
 # print(W_gradDiffMax, b_gradDiffMax)
 
 ### train model
-version     = 'v2'
-lambd       = 0.0
+version     = 'v4'
+lambd       = 1.0
 eta         = .001
 n_batch     = 100
 n_epochs    = 40
@@ -74,8 +74,8 @@ for epoch in range(1, n_epochs+1):
     
     # iterate over batches
     for i in range(len(X_train) // n_batch):
-        X_trainBatch = X_train[i*n_batch:(i+1)*n_batch]
-        Y_trainBatch = Y_train[i*n_batch:(i+1)*n_batch]
+        X_trainBatch = X_train[i*n_batch:(i+1)*n_batch, :]
+        Y_trainBatch = Y_train[i*n_batch:(i+1)*n_batch, :]
         
         # run training, GD update
         linearModel.train(
@@ -113,7 +113,7 @@ for epoch in range(1, n_epochs+1):
     )
         
 # plot COST function
-plt.plot(trainCost, 'b', linewidth=1.5, alpha=1.0, label='Training')
+plt.plot(trainCost, 'g', linewidth=1.5, alpha=1.0, label='Training')
 plt.plot(valCost, 'r', linewidth=1.5, alpha=1.0, label='Validation')
 
 plt.xlim(0, n_epochs)
@@ -125,7 +125,7 @@ plt.savefig(plot_path + 'cost_{}.png'.format(version), dpi=200)
 plt.show()
 
 # plot LOSS function
-plt.plot(trainLoss, 'b', linewidth=1.5, alpha=1.0, label='Training')
+plt.plot(trainLoss, 'g', linewidth=1.5, alpha=1.0, label='Training')
 plt.plot(valLoss, 'r', linewidth=1.5, alpha=1.0, label='Validation')
 
 plt.xlim(0, n_epochs)
@@ -137,7 +137,7 @@ plt.savefig(plot_path + 'loss_{}.png'.format(version), dpi=200)
 plt.show()
 
 # plot ACCURACY
-plt.plot([acc * 100 for acc in testAcc], 'm', linewidth=2.5, alpha=1.0)
+plt.plot([acc * 100 for acc in testAcc], 'b', linewidth=2.5, alpha=1.0)
 plt.xlim(0, n_epochs)
 plt.xlabel('Epoch')
 plt.ylabel('%', rotation=0, labelpad=20)

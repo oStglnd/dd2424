@@ -127,8 +127,13 @@ class linearClassifier:
         g = -(Y.T - P)
         
         # get weight gradients and bias gradients
-        W_grads = D**-1 * g @ X + 2 * lambd * self.W
+        W_grads = D**-1 * g @ X
         b_grads = D**-1 * np.sum(g, axis=1)
+        
+        # if regularization
+        if lambd > 0:
+            W_grads += 2 * lambd * self.W
+        
         return W_grads, np.expand_dims(b_grads, axis=1)
 
     def computeGradsNumerical(

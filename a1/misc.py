@@ -58,7 +58,7 @@ def getCifar(
     X    = np.array(batch[b'data'])
     k    = np.array(batch[b'labels'])
     Y    = oneHotEncode(k)
-        
+    
     # delete batch from memory
     del batch
     

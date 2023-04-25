@@ -9,6 +9,7 @@ class neuralNetwork:
             K: int, 
             d: int,
             m: list,
+            alpha: float,
             seed: int
         ):
         
@@ -20,23 +21,38 @@ class neuralNetwork:
         weightList = [d] + m + [K]
         self.layers = []    
         
+        # init batchNorm param
+        self.alpha = alpha
+        
         # iterate over weight dims
         np.random.seed(seed)
         for m1, m2 in zip(weightList[:-1], weightList[1:]):
-            W = np.random.normal(
+            layer = {}
+            layer['W'] = np.random.normal(
                     loc=0, 
                     scale=1/np.sqrt(m1), 
                     size=(m2, m1)
             )
-            b = np.random.normal(
-                loc=0, 
-                scale=0.0, 
+            
+            for param in ['b', 'beta', 'mu']:
+                layer[param] = np.random.normal(
+                    loc=0, 
+                    scale=0.0, 
+                    size=(m2, 1)
+                )
+
+            layer['gamma'] = np.random.normal(
+                loc=1.0, 
+                scale=1/np.sqrt(m1), 
                 size=(m2, 1)
             )
             
-            layer = {'W': W, 'b': b}
-            self.layers.append(layer)
+            layer['sigma'] = 1 / np.sqrt(m2) * np.ones((m2, 1))
             
+            self.layers.append(layer)
+     
+    # def computeBatchNorm(self)
+     
     def evaluate(
             self, 
             X: np.array,
@@ -53,7 +69,9 @@ class neuralNetwork:
         """
         hList = [X.T.copy()]
         for layer in self.layers[:-1]:
-            s = layer['W'] @ hList[-1] + layer['b']
+            s = layer['W'] @ hList[-1] + layer['b']  
+            s = (s - layer['mu']) / np.sqrt(np.diag(layer['sigma'] + 1e-8))
+            s = s * layer['gamma'] + layer['beta']
             hList.append(np.maximum(0, s))
         
         s = self.layers[-1]['W'] @ hList[-1] + self.layers[-1]['b']

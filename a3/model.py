@@ -8,42 +8,35 @@ class neuralNetwork:
             self, 
             K: int, 
             d: int,
-            m: int,
+            m: list,
             seed: int
         ):
         
         # init weight dims
         self.K = K
         self.d = d
-        self.m = m
         
-        # set seed
+        # init weight dims list
+        weightList = [d] + m + [K]
+        self.layers = []    
+        
+        # iterate over weight dims
         np.random.seed(seed)
-        
-        # init weights
-        self.weights = {
-            'W1': np.random.normal(
+        for m1, m2 in zip(weightList[:-1], weightList[1:]):
+            W = np.random.normal(
                     loc=0, 
-                    scale=1/np.sqrt(self.d), 
-                    size=(self.m, self.d)
-                ),
-            'W2': np.random.normal(
-                    loc=0, 
-                    scale=1/np.sqrt(self.m), 
-                    size=(self.K, self.m)
-                ),
-            'b1': np.random.normal(
-                    loc=0, 
-                    scale=0.0, 
-                    size=(self.m, 1)
-                ), 
-            'b2': np.random.normal(
+                    scale=1/np.sqrt(m1), 
+                    size=(m2, m1)
+            )
+            b = np.random.normal(
                 loc=0, 
                 scale=0.0, 
-                size=(self.K, 1)
-                )
-        }
-        
+                size=(m2, 1)
+            )
+            
+            layer = {'W': W, 'b': b}
+            self.layers.append(layer)
+            
     def evaluate(
             self, 
             X: np.array,
@@ -58,15 +51,18 @@ class neuralNetwork:
         -------
         P : KxN score matrix w. softmax activation
         """
-        s1 = self.weights['W1'] @ X.T + self.weights['b1'] # m x N
-        h = np.maximum(0, s1)        # m x N
-        s = self.weights['W2'] @ h + self.weights['b2']    # K x N
-        P = softMax(s)               # K x N
+        hList = [X.T.copy()]
+        for layer in self.layers[:-1]:
+            s = layer['W'] @ hList[-1] + layer['b']
+            hList.append(np.maximum(0, s))
+        
+        s = self.layers[-1]['W'] @ hList[-1] + self.layers[-1]['b']
+        P = softMax(s)
         
         if not train:
             return P
         else:
-            return P, h, s1
+            return P, hList
     
     def predict(
             self, 
@@ -112,9 +108,14 @@ class neuralNetwork:
         # get probabilities
         P = self.evaluate(X, train=False)
         
-        # evaluate loss and regularization term
+        # evaluate loss term
         l = - D**-1 * np.sum(Y.T * np.log(P))
-        r = lambd * (np.sum(np.square(self.weights['W1'])) + np.sum(np.square(self.weights['W2'])))
+        
+        # evaluate regularization term
+        r = 0
+        for layer in self.layers:
+            r += lambd * (np.sum(np.square(layer['W'])) + np.sum(np.square(layer['b'])))
+      
         return  l, l + r
     
     def computeAcc(
@@ -156,33 +157,29 @@ class neuralNetwork:
         D = len(X)
         
         # evaluate probabilities and calculate g
-        P, h, s1 = self.evaluate(X, train=True)
+        P, hList = self.evaluate(X, train=True)
         g = -(Y.T - P) # K x N
-        
-        # evaluate gradients for second layer
-        W2_grads = D**-1 * g @ h.T + 2 * lambd * self.weights['W2'] # K x m
-        b2_grads = D**-1 * np.sum(g, axis=1) # K x 1
-        
-        # evaluate gradients for first layer
-        g = self.weights['W2'].T @ g # m x N
-        
-        # get indicator for prev layer
-        idx = h > 0
-        h[idx], h[~idx] = 1, 0  # m x N
-        
-        # get new g
-        g = g * h # m x N
-        
-        #@ np.diag(np.maximum(0, s1))
-        W1_grads = D**-1 * g @ X + 2 * lambd * self.weights['W1'] # m x D
-        b1_grads = D**-1 * np.sum(g, axis=1) # m x 1
-        
-        # expand bias vectors to account for proper shape
-        b1_grads = np.expand_dims(b1_grads, axis=1)
-        b2_grads = np.expand_dims(b2_grads, axis=1)
-        
-        return W1_grads, W2_grads, b1_grads, b2_grads
 
+        gradsList = []
+        
+        for layer, h in zip(self.layers[::-1], hList[::-1]):
+            W_grads = D**-1 * g @ h.T + 2 * lambd * layer['W']
+            b_grads = D**-1 * np.sum(g, axis=1)
+            b_grads = np.expand_dims(b_grads, axis=1)
+            
+            gradsList.append({
+                'W':W_grads,
+                'b':b_grads
+            })
+            
+            g = layer['W'].T @ g
+            
+            idx = h > 0
+            h[idx], h[~idx] = 1, 0
+            g = g * h  
+        
+        return gradsList[::-1]
+    
     def computeGradsNumerical(
             self, 
             X: np.array, 
@@ -205,44 +202,47 @@ class neuralNetwork:
         """
 
         # save initial weights
-        weights = ['W1', 'W2', 'b1', 'b2']
         gradsList = []
         
-        for weight in weights:
-            shape = self.weights[weight].shape
-            w_perturb = np.zeros(shape)
-            w_gradsNum = np.zeros(shape)
-            w_0 = self.weights[weight].copy()
+        for layerIdx, layer in enumerate(self.layers):
+            layerDict = {}
             
-            for i in range(self.K):
-                for j in range(min(shape[1], 100)):
-            # for i in range(shape[0]):
-            #     for j in range(shape[1]):
-            
-                    # add perturbation
-                    w_perturb[i, j] = eps
-                    
-                    # perturb weight vector negatively
-                    # and compute cost
-                    w_tmp = w_0 - w_perturb
-                    self.weights[weight] = w_tmp
-                    _, cost1 = self.computeCost(X, Y, lambd)
+            for name, weight in layer.items():
+                shape = weight.shape
+                w_perturb = np.zeros(shape)
+                w_gradsNum = np.zeros(shape)
+                w_0 = weight.copy()
                 
-                    # perturb weight vector positively
-                    # and compute cost
-                    w_tmp = w_0 + w_perturb
-                    self.weights[weight] = w_tmp
-                    _, cost2 = self.computeCost(X, Y, lambd)
-                    lossDiff = (cost2 - cost1) / (2 * eps)
+                for i in range(self.K):
+                    for j in range(min(shape[1], self.K)):
+                # for i in range(shape[0]):
+                #     for j in range(shape[1]):
+                
+                        # add perturbation
+                        w_perturb[i, j] = eps
+                        
+                        # perturb weight vector negatively
+                        # and compute cost
+                        w_tmp = w_0 - w_perturb
+                        self.layers[layerIdx][name] = w_tmp
+                        _, cost1 = self.computeCost(X, Y, lambd)
                     
-                    # get numerical grad f. W[i, j]
-                    w_gradsNum[i, j] = lossDiff
-                    w_perturb[i, j] = 0
-        
-            # reset weigth vector
-            self.weights[weight] = w_0
-            gradsList.append(w_gradsNum)
-        
+                        # perturb weight vector positively
+                        # and compute cost
+                        w_tmp = w_0 + w_perturb
+                        self.layers[layerIdx][name] = w_tmp
+                        _, cost2 = self.computeCost(X, Y, lambd)
+                        lossDiff = (cost2 - cost1) / (2 * eps)
+                        
+                        # get numerical grad f. W[i, j]
+                        w_gradsNum[i, j] = lossDiff
+                        w_perturb[i, j] = 0
+            
+                # reset weigth vector
+                self.layers[layerIdx][name] = w_0
+                layerDict[name] = w_gradsNum
+            gradsList.append(layerDict)
+            
         return gradsList
     
     def train(
@@ -263,9 +263,9 @@ class neuralNetwork:
         # get grads from self.computeGrads and update weights
         # w. GD and learning parameter eta
         grads = self.computeGrads(X, Y, lambd)
-        weights = ['W1', 'W2', 'b1', 'b2']
         
-        for grad, weight in zip(grads, weights):
-            self.weights[weight] -= eta * grad
+        for grad, layer in zip(grads, self.layers):
+            layer['W'] -= eta * grad['W']
+            layer['b'] -= eta * grad['b']
         
         

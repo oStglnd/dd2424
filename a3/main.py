@@ -67,6 +67,9 @@ neuralNet = neuralNetwork(
     seed=seed
 )
 
+# neuralNet.predict(X_train[:100])
+grads = neuralNet.computeGradsBatchNorm(X_train[:100], Y_train[:100], lambd=0)
+
 # # set params
 # n_epochs = 50
 # n_batch = 100

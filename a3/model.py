@@ -34,24 +34,56 @@ class neuralNetwork:
                     size=(m2, m1)
             )
             
-            for param in ['b', 'beta', 'mu']:
+            for param in ['b', 'mu']:
                 layer[param] = np.random.normal(
                     loc=0, 
                     scale=0.0, 
                     size=(m2, 1)
                 )
 
-            layer['gamma'] = np.random.normal(
-                loc=1.0, 
-                scale=1/np.sqrt(m1), 
-                size=(m2, 1)
-            )
+            layer['v'] = 1 / np.sqrt(m2) * np.ones((m2, 1))
+
+            layer['gamma'] = np.ones(shape=(m2, 1))
+            layer['beta'] = np.zeros(shape=(m2, 1))
             
-            layer['sigma'] = 1 / np.sqrt(m2) * np.ones((m2, 1))
             
             self.layers.append(layer)
      
-    # def computeBatchNorm(self)
+    def initBatchNorm(
+            self,
+            X: np.array
+        ) -> None:
+        """
+        Parameters
+        ----------
+        X : Nxd data matrix
+
+        Returns
+        -------
+        None
+        """
+        _, _, _, _, muList, vList = self.evaluate(X, train=True)
+        for mu, v, layer in zip(muList, vList, self.layers):
+            layer['mu'] = mu
+            layer['v'] = v
+    
+    def updateBatchNorm(
+            self,
+            muList: list,
+            vList: list
+        ) -> None:
+        """
+        Parameters
+        ----------
+        muList : list w. computed batchNorm mean per layer
+        vList : list w. computed batchNorm variance per layer
+        Returns
+        -------
+        None
+        """
+        for mu, v, layer in zip(muList, vList, self.layers):    
+            layer['mu'] = self.alpha * layer['mu'] + (1 - self.alpha) * mu
+            layer['v'] = self.alpha * layer['v'] + (1 - self.alpha) * v
      
     def evaluate(
             self, 
@@ -68,10 +100,27 @@ class neuralNetwork:
         P : KxN score matrix w. softmax activation
         """
         hList = [X.T.copy()]
+        sList = []
+        sListNorm = []
+        muList = [np.mean(X.T, axis=1)[..., np.newaxis]]
+        vList = [np.var(X.T, axis=1)[..., np.newaxis]]
         for layer in self.layers[:-1]:
             s = layer['W'] @ hList[-1] + layer['b']  
-            s = (s - layer['mu']) / np.sqrt(np.diag(layer['sigma'] + 1e-8))
+            sList.append(s)
+
+            if train:
+                mu = np.mean(s, axis=1)[..., np.newaxis]
+                v = np.var(s, axis=1)[..., np.newaxis]
+                
+                muList.append(mu)
+                vList.append(v)
+            else:
+                mu = layer['mu']
+                v = layer['v']
+            
+            s = np.power(v + 1e-12, -0.5) * np.eye(v.shape[0]) @ (s - mu)
             s = s * layer['gamma'] + layer['beta']
+            sListNorm.append(s)
             hList.append(np.maximum(0, s))
         
         s = self.layers[-1]['W'] @ hList[-1] + self.layers[-1]['b']
@@ -80,7 +129,7 @@ class neuralNetwork:
         if not train:
             return P
         else:
-            return P, hList
+            return P, hList, sList, sListNorm, muList, vList
     
     def predict(
             self, 
@@ -175,27 +224,118 @@ class neuralNetwork:
         D = len(X)
         
         # evaluate probabilities and calculate g
-        P, hList = self.evaluate(X, train=True)
+        P, hList, _, _, _ = self.evaluate(X, train=True)
         g = -(Y.T - P) # K x N
 
+        # init grads list
         gradsList = []
         
+        # iteratively compute grads per layer
         for layer, h in zip(self.layers[::-1], hList[::-1]):
             W_grads = D**-1 * g @ h.T + 2 * lambd * layer['W']
             b_grads = D**-1 * np.sum(g, axis=1)
             b_grads = np.expand_dims(b_grads, axis=1)
             
+            # save grads
             gradsList.append({
                 'W':W_grads,
                 'b':b_grads
             })
             
-            g = layer['W'].T @ g
-            
-            idx = h > 0
-            h[idx], h[~idx] = 1, 0
-            g = g * h  
+            # propagate g
+            h[h > 0] = 1
+            g = layer['W'].T @ g * h
         
+        return gradsList[::-1]
+    
+    def computeGradsBatchNorm(
+            self, 
+            X: np.array, 
+            Y: np.array, 
+            lambd: float
+        ) -> (np.array, np.array):
+        """
+        Parameters
+        ----------
+        X : Nxd data matrix
+        Y : NxK one-hot encoded label matrix
+        lambd: regularization parameter
+        
+        Returns
+        -------
+        W_grads : gradients for weight martix (W)
+        b_grads : gradients for bias matrix (b)
+        """
+        # get size of batch
+        D = len(X)
+        
+        # evaluate probabilities and calculate g
+        P, hList, sList, sListNorm, muList, vList = self.evaluate(X, train=True)
+        g = -(Y.T - P) # K x N
+
+        # init grads list
+        gradsList = []
+        
+        # compute gradients for last layer
+        W_grads = D**-1 * g @ hList[-1].T + 2 * lambd * self.layers[-1]['W']
+        b_grads = D**-1 * np.sum(g, axis=1)
+        b_grads = np.expand_dims(b_grads, axis=1)
+        
+        # save grads
+        gradsList.append({
+            'W':W_grads,
+            'b':b_grads
+        })
+        
+        # propagate g to next layer
+        hList[-1][hList[-1] > 0] = 1
+        g = self.layers[-1]['W'].T @ g * hList[-1]
+        
+        # create zipped object for iterating over params
+        iterObj = zip(
+            self.layers[-2::-1],
+            hList[-2::-1],
+            sList[::-1],
+            sListNorm[::-1],
+            muList[::-1],
+            vList[::-1]
+        )
+        
+        # iteratively compute grads for remaining layers w. batchNorm
+        for layer, h, s, sNorm, mu, v in iterObj:
+            
+            # compute grads and offset params
+            gamma_grads = D**-1 * np.sum(g @ sNorm.T)
+            beta_grads = D**-1 * np.sum(g, axis=1)
+            
+            # propagate g w.r.t. scaling
+            g = g * layer['gamma']
+            
+            # propagate g through BatchNorm
+            sigma1 = np.power(v + 1e-12, -.5)
+            sigma2 = np.power(v + 1e-12, -1.5)
+            g1 = g * sigma1
+            g2 = g * sigma2
+            d = s - mu
+            c = g2 * d
+            g = g1 - D**-1 * (g1 - d * c)
+            
+            # compute weight grads
+            W_grads = D**-1 * g @ h.T + 2 * lambd * layer['W']
+            b_grads = D**-1 * np.sum(g, axis=1)
+            
+            # save grads
+            gradsList.append({
+                'W':W_grads,
+                'b':b_grads,
+                'gamma':gamma_grads,
+                'beta':beta_grads
+            })
+            
+            # propagate g to next layer
+            h[h > 0] = 1
+            g = layer['W'].T @ g * h
+            
         return gradsList[::-1]
     
     def computeGradsNumerical(
@@ -283,7 +423,9 @@ class neuralNetwork:
         grads = self.computeGrads(X, Y, lambd)
         
         for grad, layer in zip(grads, self.layers):
-            layer['W'] -= eta * grad['W']
-            layer['b'] -= eta * grad['b']
+            layer['W']      -= eta * grad['W']
+            layer['b']      -= eta * grad['b']
+            layer['gamma']  -= eta * grad['gamma']
+            layer['beta']   -= eta * grad['beta']
         
         

@@ -54,7 +54,7 @@ X_val   = (X_val - mean_train) / std_train
 # INIT params
 K = 10      # init n. of classes
 d = 3072    # init dimensions
-m = [50, 30, 20, 20, 10, 10, 10, 10] # init units
+m = [50, 30, 20, 20, 10] # init units
 alpha = 0.9 # init batchNorm param
 seed = 200      # init seed
 
@@ -67,88 +67,127 @@ neuralNet = neuralNetwork(
     seed=seed
 )
 
-# neuralNet.predict(X_train[:100])
-grads = neuralNet.computeGradsBatchNorm(X_train[:100], Y_train[:100], lambd=0)
+# set params
+n_epochs = 50
+n_batch = 100
+eta_min = 1e-5
+eta_max = 1e-1
+ns      = 5 * 45000 // n_batch
+n_cycles = 3
+lambd = 0.005
 
-# # set params
-# n_epochs = 50
-# n_batch = 100
-# eta_min = 1e-5
-# eta_max = 1e-1
-# ns      = 5 * 45000 // n_batch
-# n_cycles = 2
-# lambd = 0.005
+# init lists/dicts
+etaHist, accHist = [], []
+lossHist, costHist = {'train':[], 'val':[]}, {'train':[], 'val':[]}
 
-# # init lists/dicts
-# etaHist, accHist = [], []
-# lossHist, costHist = {'train':[], 'val':[]}, {'train':[], 'val':[]}
+# create list of idxs for shuffling
+idxs = list(range(len(X_train)))
 
-# # create list of idxs for shuffling
-# idxs = list(range(len(X_train)))
+# create timestep
+t = 0
 
-# # create timestep
-# t = 0
+# init batchNorm params
+neuralNet.initBatchNorm(X_train[:n_batch])
 
-# for epoch in range(1, n_epochs+1):
-#     # shuffle training examples
-#     np.random.shuffle(idxs)
-#     X_train, Y_train, k_train = X_train[idxs], Y_train[idxs], k_train[idxs]
+for epoch in range(1, n_epochs+1):
+    # shuffle training examples
+    np.random.shuffle(idxs)
+    X_train, Y_train, k_train = X_train[idxs], Y_train[idxs], k_train[idxs]
     
-#     # iterate over batches
-#     for i in range(len(X_train) // n_batch):
-#         X_trainBatch = X_train[i*n_batch:(i+1)*n_batch]
-#         Y_trainBatch = Y_train[i*n_batch:(i+1)*n_batch]
+    # iterate over batches
+    for i in range(len(X_train) // n_batch):
+        X_trainBatch = X_train[i*n_batch:(i+1)*n_batch]
+        Y_trainBatch = Y_train[i*n_batch:(i+1)*n_batch]
         
-#         # update eta
-#         eta = cyclicLearningRate(
-#             etaMin=eta_min, 
-#             etaMax=eta_max, 
-#             stepSize=ns, 
-#             timeStep=t
-#         )        
+        # update eta
+        eta = cyclicLearningRate(
+            etaMin=eta_min, 
+            etaMax=eta_max, 
+            stepSize=ns, 
+            timeStep=t
+        )        
         
-#         # run training, GD update
-#         neuralNet.train(
-#             X=X_trainBatch, 
-#             Y=Y_trainBatch, 
-#             lambd=lambd, 
-#             eta=eta
-#         )
+        # run training, GD update
+        neuralNet.train(
+            X=X_trainBatch, 
+            Y=Y_trainBatch, 
+            lambd=lambd, 
+            eta=eta
+        )
         
-#         # append to list of eta and update time step
-#         etaHist.append(eta)
-#         t += 1
+        # append to list of eta and update time step
+        etaHist.append(eta)
+        t += 1
         
-#         # if some number of cycles, break
-#         if t >= n_cycles * 2 * ns:
-#             break
+        # if some number of cycles, break
+        if t >= n_cycles * 2 * ns:
+            break
     
-#         # add loss, cost info, 4 times per cycle
-#         if t % (ns / 10) == 0:
-#             trainLoss, trainCost = neuralNet.computeCost(
-#                 X_train, 
-#                 Y_train, 
-#                 lambd=lambd
-#             )
+        # add loss, cost info, 4 times per cycle
+        if t % (ns / 10) == 0:
+            trainLoss, trainCost = neuralNet.computeCost(
+                X_train, 
+                Y_train, 
+                lambd=lambd
+            )
             
-#             valLoss, valCost = neuralNet.computeCost(
-#                 X_val, 
-#                 Y_val, 
-#                 lambd=lambd
-#             )
+            valLoss, valCost = neuralNet.computeCost(
+                X_val, 
+                Y_val, 
+                lambd=lambd
+            )
             
-#             # get acc
-#             acc = neuralNet.computeAcc(X_test, k_test)
+            # get acc
+            acc = neuralNet.computeAcc(X_test, k_test)
             
-#             # save info
-#             lossHist['train'].append(trainLoss)
-#             lossHist['val'].append(valLoss)
-#             costHist['train'].append(trainCost)
-#             costHist['val'].append(valCost)
-#             accHist.append(acc)
+            # save info
+            lossHist['train'].append(trainLoss)
+            lossHist['val'].append(valLoss)
+            costHist['train'].append(trainCost)
+            costHist['val'].append(valCost)
+            accHist.append(acc)
         
-#             # print info
-#             print(
-#                 '\t STEP {} - trainingloss: {:.2f}, validationLoss: {:.2f}, testAcc: {:.4f}'\
-#                 .format(t, lossHist['train'][-1], costHist['train'][-1], accHist[-1])
-#             )
+            # print info
+            print(
+                '\t STEP {} - trainingloss: {:.2f}, validationLoss: {:.2f}, testAcc: {:.4f}'\
+                .format(t, lossHist['train'][-1], costHist['train'][-1], accHist[-1])
+            )
+                
+# define steps for plot               
+steps = [step * (ns / 10) for step in range(len(costHist['train']))]
+               
+# plot COST function
+plt.plot(steps, costHist['train'], 'g', linewidth=1.5, alpha=1.0, label='Training')
+plt.plot(steps, costHist['val'], 'r', linewidth=1.5, alpha=1.0, label='Validation')
+
+plt.xlim(0, steps[-1])
+plt.ylim(0, max(costHist['train']) * 1.5)
+plt.xlabel('Step')
+plt.ylabel('Cost', rotation=0, labelpad=20)
+#plt.title('Cost')
+plt.legend(loc='upper right')
+# plt.savefig(plot_path + 'cost_{}.png'.format(version), dpi=200)
+plt.show()
+
+# plot LOSS function
+plt.plot(steps, lossHist['train'], 'g', linewidth=1.5, alpha=1.0, label='Training')
+plt.plot(steps, lossHist['val'], 'r', linewidth=1.5, alpha=1.0, label='Validation')
+
+plt.xlim(0, steps[-1])
+plt.ylim(0, max(lossHist['train']) * 1.5)
+plt.xlabel('Step')
+plt.ylabel('Loss', rotation=0, labelpad=20)
+#plt.title('Loss')
+plt.legend(loc='upper right')
+# plt.savefig(plot_path + 'loss_{}.png'.format(version), dpi=200)
+plt.show()
+
+# plot ACCURACY
+plt.plot(steps, [acc * 100 for acc in accHist], 'b', linewidth=2.5, alpha=1.0)
+plt.ylim(0,70)
+plt.xlim(0, steps[-1])
+plt.xlabel('Step')
+plt.ylabel('%', rotation=0, labelpad=20)
+plt.title('Testing accuracy')
+# plt.savefig(plot_path + 'acc_{}.png'.format(version), dpi=200)
+plt.show()

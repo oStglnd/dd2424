@@ -31,18 +31,13 @@ neuralNet = neuralNetwork(
     K = 10,
     d = 3072,
     m = [50, 50, 20],
-    seed=1
-)
-
-preds1 = neuralNet.predict(X_train[:1000])
-
-gradsList = neuralNet.computeGrads(
-    X=X_train[:100], 
-    Y=Y_train[:100], 
-    lambd=0
+    seed=1,
+    alpha=0.9
 )
 
 # GRADS TEST
+neuralNet.initBatchNorm(X_train[:100])
+
 gradsListNum = neuralNet.computeGradsNumerical(
     X=X_train[:100], 
     Y=Y_train[:100], 
@@ -50,52 +45,75 @@ gradsListNum = neuralNet.computeGradsNumerical(
     eps=1e-5
 ) 
 
-preds2 = neuralNet.predict(X_train[:1000])
+gradsList = neuralNet.computeGradsBatchNorm(
+    X=X_train[:100], 
+    Y=Y_train[:100], 
+    lambd=0
+)
 
 print('\nGradient check:')
-for grads, gradsNum in zip(gradsList, gradsListNum):
+for idx, (grads, gradsNum) in enumerate(zip(gradsList, gradsListNum)):
     W_gradDiffMax = np.max(np.abs(grads['W'][:10, :10] - gradsNum['W'][:10, :10]))
     b_gradDiffMax = np.max(np.abs(grads['b'][:10] - gradsNum['b'][:10]))
-
-    print('\n\t max|W - W_num| = {:.10f}\
-            \n\t max|b - b_num| = {:.10f}'.format(
-            W_gradDiffMax, 
-            b_gradDiffMax,
-    ))
-
-# test train
-lossHist, costHist = [], []
-for epoch in range(1,  500):
-    if epoch % 50 == 0:
-        print('EPOCH {} of gradient test training, \n loss: {:.3f}'.format(
-            epoch,
-            lossHist[-1]
+    
+    if idx < len(gradsList)-1:
+        gamma_gradDiffMax = np.max(np.abs(grads['gamma'][:10, :10] - gradsNum['gamma'][:10, :10]))
+        beta_gradDiffMax = np.max(np.abs(grads['beta'][:10] - gradsNum['beta'][:10]))
+        
+        print('\n Layer {}'.format(idx))
+        print('\t max|W - W_num| = {:.10f}\
+                \n\t max|b - b_num| = {:.10f}\
+                \n\t max|gamma - gamma_num| = {:.10f}\
+                \n\t max|beta - beta_num| = {:.10f}'.format(
+                W_gradDiffMax, 
+                b_gradDiffMax,
+                gamma_gradDiffMax,
+                beta_gradDiffMax
         ))
     
-    neuralNet.train(
-        X_train[:100],
-        Y_train[:100],
-        lambd=0,
-        eta=0.05
-    )
-    
-    loss, cost = neuralNet.computeCost(
-        X_train[:100], 
-        Y_train[:100], 
-        lambd=0
-    )
-    
-    lossHist.append(loss)
-    costHist.append(cost)
+W_gradDiffMax = np.max(np.abs(grads['W'][:10, :10] - gradsNum['W'][:10, :10]))
+b_gradDiffMax = np.max(np.abs(grads['b'][:10] - gradsNum['b'][:10]))
+print('\n Layer {}'.format(idx))
+print('\t max|W - W_num| = {:.10f}\
+        \n\t max|b - b_num| = {:.10f}'.format(
+        W_gradDiffMax, 
+        b_gradDiffMax,
+))
 
-# plot results
-plt.plot(lossHist, 'b', linewidth=1.5, alpha=1.0, label='Loss')
-plt.plot(costHist, 'r--', linewidth=1.5, alpha=1.0, label='Cost')
 
-plt.xlim(0, len(lossHist))
-plt.xlabel('Step')
-plt.ylabel('', rotation=0, labelpad=20)
-plt.title('Training results for small subset')
-plt.legend(loc='upper right')
-# plt.savefig(plot_path + 'grad_test.png', dpi=200)
-plt.show()
+# # test train
+# lossHist, costHist = [], []
+# for epoch in range(1,  500):
+#     if epoch % 50 == 0:
+#         print('EPOCH {} of gradient test training, \n loss: {:.3f}'.format(
+#             epoch,
+#             lossHist[-1]
+#         ))
+    
+#     neuralNet.train(
+#         X_train[:100],
+#         Y_train[:100],
+#         lambd=0,
+#         eta=0.05
+#     )
+    
+#     loss, cost = neuralNet.computeCost(
+#         X_train[:100], 
+#         Y_train[:100], 
+#         lambd=0
+#     )
+    
+#     lossHist.append(loss)
+#     costHist.append(cost)
+
+# # plot results
+# plt.plot(lossHist, 'b', linewidth=1.5, alpha=1.0, label='Loss')
+# plt.plot(costHist, 'r--', linewidth=1.5, alpha=1.0, label='Cost')
+
+# plt.xlim(0, len(lossHist))
+# plt.xlabel('Step')
+# plt.ylabel('', rotation=0, labelpad=20)
+# plt.title('Training results for small subset')
+# plt.legend(loc='upper right')
+# # plt.savefig(plot_path + 'grad_test.png', dpi=200)
+# plt.show()

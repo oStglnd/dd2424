@@ -30,9 +30,12 @@ X_val   = (X_val - mean_train) / std_train
 neuralNet = neuralNetwork(
     K = 10,
     d = 3072,
-    m = [50, 50, 20],
-    seed=1,
-    alpha=0.9
+    m = [50, 50, 30, 20],
+    batchNorm=True,
+    alpha=0.9,
+    initialization='He',
+    sigma=0,
+    seed=1
 )
 
 # GRADS TEST
@@ -81,39 +84,39 @@ print('\t max|W - W_num| = {:.10f}\
 ))
 
 
-# # test train
-# lossHist, costHist = [], []
-# for epoch in range(1,  500):
-#     if epoch % 50 == 0:
-#         print('EPOCH {} of gradient test training, \n loss: {:.3f}'.format(
-#             epoch,
-#             lossHist[-1]
-#         ))
+# test train
+lossHist, costHist = [], []
+for epoch in range(1,  500):
+    if epoch % 50 == 0:
+        print('EPOCH {} of gradient test training, \n loss: {:.3f}'.format(
+            epoch,
+            lossHist[-1]
+        ))
     
-#     neuralNet.train(
-#         X_train[:100],
-#         Y_train[:100],
-#         lambd=0,
-#         eta=0.05
-#     )
+    neuralNet.train(
+        X_train[:100],
+        Y_train[:100],
+        lambd=0,
+        eta=0.01
+    )
     
-#     loss, cost = neuralNet.computeCost(
-#         X_train[:100], 
-#         Y_train[:100], 
-#         lambd=0
-#     )
+    loss, cost = neuralNet.computeCost(
+        X_train[:100], 
+        Y_train[:100], 
+        lambd=0
+    )
     
-#     lossHist.append(loss)
-#     costHist.append(cost)
+    lossHist.append(loss)
+    costHist.append(cost)
 
-# # plot results
-# plt.plot(lossHist, 'b', linewidth=1.5, alpha=1.0, label='Loss')
-# plt.plot(costHist, 'r--', linewidth=1.5, alpha=1.0, label='Cost')
+# plot results
+plt.plot(lossHist, 'b', linewidth=1.5, alpha=1.0, label='Loss')
+plt.plot(costHist, 'r--', linewidth=1.5, alpha=1.0, label='Cost')
 
-# plt.xlim(0, len(lossHist))
-# plt.xlabel('Step')
-# plt.ylabel('', rotation=0, labelpad=20)
-# plt.title('Training results for small subset')
-# plt.legend(loc='upper right')
-# # plt.savefig(plot_path + 'grad_test.png', dpi=200)
-# plt.show()
+plt.xlim(0, len(lossHist))
+plt.xlabel('Step')
+plt.ylabel('', rotation=0, labelpad=20)
+plt.title('Training results for small subset')
+plt.legend(loc='upper right')
+plt.savefig(plot_path + 'grad_test_9layer.png', dpi=200)
+plt.show()

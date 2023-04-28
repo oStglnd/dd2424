@@ -9,7 +9,10 @@ class neuralNetwork:
             K: int, 
             d: int,
             m: list,
+            batchNorm: bool,
             alpha: float,
+            initialization: str,
+            sigma: float,
             seed: int
         ):
         
@@ -22,33 +25,46 @@ class neuralNetwork:
         self.layers = []    
         
         # init batchNorm param
+        self.batchNorm = batchNorm
         self.alpha = alpha
         
         # iterate over weight dims
         np.random.seed(seed)
         for m1, m2 in zip(weightList[:-1], weightList[1:]):
             layer = {}
+            
+            if initialization == 'He':
+                scale = 2/np.sqrt(m1)
+            else:
+                scale = sigma
+                
             layer['W'] = np.random.normal(
                     loc=0, 
-                    scale=1/np.sqrt(m1), 
+                    scale=scale, 
                     size=(m2, m1)
             )
             
-            for param in ['b', 'mu']:
-                layer[param] = np.random.normal(
-                    loc=0, 
-                    scale=0.0, 
-                    size=(m2, 1)
-                )
-
-            layer['v'] = 1 / np.sqrt(m2) * np.ones((m2, 1))
-
-            layer['gamma'] = np.ones(shape=(m2, 1))
-            layer['beta'] = np.zeros(shape=(m2, 1))
+            layer['b'] = np.zeros(shape=(m2, 1))
+            
+            if self.batchNorm:
+                for param in ['mu', 'beta']:
+                    layer[param] = np.random.normal(
+                        loc=0, 
+                        scale=0.0, 
+                        size=(m2, 1)
+                    )
+    
+                for param in ['v', 'gamma']:
+                    layer[param] = np.random.normal(
+                        loc=1, 
+                        scale=1/np.sqrt(m2), 
+                        size=(m2, 1)
+                    )
             
             self.layers.append(layer)
-            
-        del self.layers[-1]['gamma'], self.layers[-1]['beta']
+        
+        if self.batchNorm:
+            del self.layers[-1]['gamma'], self.layers[-1]['beta']
      
     def initBatchNorm(
             self,
@@ -109,26 +125,26 @@ class neuralNetwork:
         for layer in self.layers[:-1]:
             s = layer['W'] @ hList[-1] + layer['b']  
             sList.append(s.copy())
-
-            if train:
-                mu = np.mean(s, axis=1)[..., np.newaxis]
-                v = np.var(s, axis=1)[..., np.newaxis]
+            
+            if self.batchNorm:
+                if train:
+                    mu = np.mean(s, axis=1, keepdims=True)#[..., np.newaxis]
+                    v = np.var(s, axis=1, keepdims=True)#[..., np.newaxis]
+                    
+                    muList.append(mu)
+                    vList.append(v)
+                else:
+                    mu = layer['mu']
+                    v = layer['v']
                 
-                muList.append(mu)
-                vList.append(v)
-            else:
-                mu = layer['mu']
-                v = layer['v']
-            
-            # s = np.power(v + 1e-12, -0.5) * np.eye(v.shape[0]) @ (s - mu)
-            s = (s - mu) / np.sqrt(v + 1e-12) 
-            sListNorm.append(s.copy())
-            
-            s = layer['gamma'] * s + layer['beta']
+                s = (s - mu) / np.sqrt(v + 1e-12) 
+                sListNorm.append(s.copy())
+                s = layer['gamma'] * s + layer['beta']
+                
+                # update params for batchNorm
+                self.updateBatchNorm(muList, vList)
+                
             hList.append(np.maximum(0, s))
-        
-        # update params for batchNorm
-        self.updateBatchNorm(muList, vList)
         
         s = self.layers[-1]['W'] @ hList[-1] + self.layers[-1]['b']
         P = softMax(s)
@@ -330,7 +346,7 @@ class neuralNetwork:
             g2 = g * (sigma2 @ ones)
             d = s - (mu @ ones)
             c = (g2 * d) @ ones.T 
-            g = g1 - D**-1 * ((g1 @ ones.T) @ ones + d * (c @ ones))
+            g = g1 - D**-1 * (g1 @ ones.T) @ ones - D**-1 * d * (c @ ones)
             
             # compute weight grads
             W_grads = D**-1 * g @ h.T + 2 * lambd * layer['W']
@@ -432,15 +448,12 @@ class neuralNetwork:
         """
         # get grads from self.computeGrads and update weights
         # w. GD and learning parameter eta
-        grads = self.computeGradsBatchNorm(X, Y, lambd)
+        if self.batchNorm:
+            grads = self.computeGradsBatchNorm(X, Y, lambd)
+        else:
+            grads = self.computeGrads(X, Y, lambd)
         
-        for grad, layer in zip(grads[:-1], self.layers[:-1]):
-            layer['W']      -= eta * grad['W']
-            layer['b']      -= eta * grad['b']
-            layer['gamma']  -= eta * grad['gamma']
-            layer['beta']   -= eta * grad['beta']
-            
-        self.layers[-1]['W']      -= eta * grads[-1]['W']
-        self.layers[-1]['b']      -= eta * grads[-1]['b']
-        
-        
+        for grad, layer in zip(grads, self.layers):
+            for weightKey, weightVals in layer.items():
+                if weightKey not in ['mu', 'v']:
+                    weightVals -= eta * grad[weightKey]

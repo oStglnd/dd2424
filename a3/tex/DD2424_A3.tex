@@ -79,7 +79,7 @@ For the $k$-layer network \textbf{without} \texttt{batch normalization}, the ana
 \vspace{0.5cm}
 
 \subsubsection*{Training a $3$-layer network}
-	For the $3$-layer network, there is no discernable difference in terms of the performance of the networks with respect to the accuracy on the test dataset. In fact, omitting \texttt{batch normalization} seems to result in a more stable training procedure.
+	For the $3$-layer network, there is no discernable difference in terms of the performance of the networks with respect to the accuracy on the test dataset. In fact, omitting \texttt{batch normalization} seems to result in a more stable training procedure. 
 	\begin{figure}[h!]
 		\centering
 		\includegraphics[width=7cm]{../plots/loss_comp_3layer.png}
@@ -87,7 +87,7 @@ For the $k$-layer network \textbf{without} \texttt{batch normalization}, the ana
 		\caption{Loss and accuracy for $3$-layer network with and without \texttt{batch normalization}, using $\lambda=0.005$, and a cyclical learning rate with $\eta_{min} = 10^{-5}$ and $\eta_{max} = 10^{-1}$.}
 	\end{figure}
 \subsubsection*{Training a $9$-layer network}
-	There is a clear difference when implementing and omitting \texttt{batch normalization}. In the former case, the network achieves an accuracy on the test dataset slightly above $50$\%, while the corresponding accuruacy in the latter case is on the order of $45$\%. There is also a clear difference in terms of the loss, where the network trained with \texttt{batch normalization} achieves a lower loss across the training process.
+	There is a clear difference when implementing and omitting \texttt{batch normalization} for the $9$-layer network. In the former case, the network achieves an accuracy on the test dataset slightly above $50$\%, while the corresponding accuruacy in the latter case is on the order of $45$\%. There is also a clear difference in terms of the loss, where the network trained with \texttt{batch normalization} achieves a lower loss across the training process. That is, the network with \texttt{batch normalization} achieves better performance and learns significantly faster compared to the network without it.
 	\begin{figure}[h!]
 		\centering
 		\includegraphics[width=7cm]{../plots/loss_comp_9layer.png}
@@ -99,7 +99,7 @@ For the $k$-layer network \textbf{without} \texttt{batch normalization}, the ana
 \subsection*{Conducting a $\lambda$-search}
 	I conducted a search for an optimal $\lambda$ by computing $10^l$ where
 	$$l = l_{min} + (l_{max} - l_{min}) \cdot u, \quad u\sim\text{Uniform}(0, 1)$$
-	and $l_{min} = -4$ and $l_{max} = -2$, by sampling $u$ for a number of iterations and training for $2$ cycles per iteration. I achieved the best highest accuracy on the test dataset with $\lambda = 0.0093$. Then, I trained a network with $\lambda = 0.009$ for $3$ cycles and attained an accuracy of $53.60$\%. The loss, cost and accuracy are plotted below. In general, it seems that the multi-layer network with \texttt{batch normalization} benefits from a higher rate of regularization in comparison to the network in the previous assignment, where I found an optimal $\lambda$ to be more on the order of $\leq 0.0002$.
+	and $l_{min} = -4$ and $l_{max} = -2$, by sampling $u$ for a number of iterations and training for $2$ cycles per iteration. I achieved the best highest accuracy on the test dataset with $\lambda = 0.0093$. Then, I trained a network with $\lambda = 0.009$ for $3$ cycles and attained an accuracy of $53.60$\%. The loss, cost and accuracy are plotted below. In general, it seems that the multi-layer network with \texttt{batch normalization} benefits from a higher rate of regularization in comparison to the network in the previous assignment, where I found an optimal $\lambda$ to be more on the order of $\leq 0.0002$. This might, of course, be primarily due to the inclusion of more layers, rather than the effect of \texttt{batch normalization}. And while $53.60$\% is a fair result for a $3$-layer network, it should be noted that this was the top-performing network for the particular $\lambda$-search that I conducted, and that a network with $\lambda = 0.005$ actually performed slightly better in terms of accuracy on the test data.
 
 	\begin{figure}[h!]
 		\centering
@@ -111,7 +111,7 @@ For the $k$-layer network \textbf{without} \texttt{batch normalization}, the ana
 
 \newpage
 \subsection*{Sensitivity to initialization}
-	When we decrease the variance in the random normal initialization of $\bm{W}$, we get an increasingly poor training performance in the case where \texttt{batch normalization} is omitted. In the third case, where $\bm{W}$ are initialized with $\mathcal{N}(0, 0.0001)$, there is in fact no learning whatsoever. On the other hand, in the case of implementing \texttt{batch normalization}, the loss during training and accuracy during testing seems to be pretty much equal across all three cases.
+	When we decrease the variance in the random normal initialization of $\bm{W}$, we get an increasingly poor training performance in the case where \texttt{batch normalization} is omitted. In the second case, where $\bm{W}$ are initialized with $\mathcal{N}(0, 0.001)$, the network seems to start learning first after some $4000-5000$ steps. Eventually, the achieved accuracy is very similar to that of the network with \texttt{batch normalization}. However, in the third case, where $\bm{W}$ are initialized with $\mathcal{N}(0, 0.0001)$, there is in fact no learning whatsoever, even after the full $3$ cycles. For the corresponding network with \texttt{batch normalization}, the loss during training and accuracy during testing seems to be pretty much equal as that of the two previous cases. Hence, this clearly demonstrates the value of using \texttt{batch normalization} - as well as the importance of appropriate weight initialization.
 	\begin{figure}[h!]
 		\centering
 		\includegraphics[width=7cm]{../plots/loss_comp_sigma1.png}

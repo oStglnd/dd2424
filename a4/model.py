@@ -238,70 +238,68 @@ class recurrentNeuralNetwork:
         
         return grads
     
-    # def computeGradsNumerical(
-    #         self, 
-    #         X: np.array, 
-    #         Y: np.array, 
-    #         lambd: float,
-    #         eps: float,
-    #     ) -> np.array:
-    #     """
-    #     Parameters
-    #     ----------
-    #     X : Nxd data matrix
-    #     Y : NxK one-hot encoded label matrix
-    #     lambd: regularization parameter
-    #     eps: epsilon for incremental derivative calc.
+    def computeGradsNumerical(
+            self, 
+            X: np.array, 
+            Y: np.array, 
+            lambd: float,
+            eps: float,
+        ) -> np.array:
+        """
+        Parameters
+        ----------
+        X : Nxd data matrix
+        Y : NxK one-hot encoded label matrix
+        lambd: regularization parameter
+        eps: epsilon for incremental derivative calc.
         
-    #     Returns
-    #     -------
-    #     W_gradsNum : numerically calculated gradients for weight martix (W)
-    #     b_gradsNum : numerically calculated gradients for bias matrix (b)
-    #     """
+        Returns
+        -------
+        W_gradsNum : numerically calculated gradients for weight martix (W)
+        b_gradsNum : numerically calculated gradients for bias matrix (b)
+        """
 
-    #     # save initial weights
-    #     gradsList = []
-        
-    #     for layerIdx, layer in enumerate(self.layers):
-    #         layerDict = {}
+        # save initial weights
+        gradsDict = {}
+
+        for name, weight in self.weights.items():
+            shape = weight.shape
+            w_perturb = np.zeros(shape)
+            w_gradsNum = np.zeros(shape)
+            w_0 = weight.copy()
             
-    #         for name, weight in layer.items():
-    #             shape = weight.shape
-    #             w_perturb = np.zeros(shape)
-    #             w_gradsNum = np.zeros(shape)
-    #             w_0 = weight.copy()
-                
-    #             for i in range(self.K):
-    #                 for j in range(min(shape[1], self.K)):
-    #             # for i in range(shape[0]):
-    #             #     for j in range(shape[1]):
-                
-    #                     # add perturbation
-    #                     w_perturb[i, j] = eps
-                        
-    #                     # perturb weight vector negatively
-    #                     # and compute cost
-    #                     w_tmp = w_0 - w_perturb
-    #                     self.layers[layerIdx][name] = w_tmp
-    #                     _, cost1 = self.computeCost(X, Y, lambd)
+            for i in range(self.K):
+                for j in range(min(shape[1], self.K)):
+            # for i in range(shape[0]):
+            #     for j in range(shape[1]):
+            
+                    # add perturbation
+                    w_perturb[i, j] = eps
                     
-    #                     # perturb weight vector positively
-    #                     # and compute cost
-    #                     w_tmp = w_0 + w_perturb
-    #                     self.layers[layerIdx][name] = w_tmp
-    #                     _, cost2 = self.computeCost(X, Y, lambd)
-    #                     lossDiff = (cost2 - cost1) / (2 * eps)
-                        
-    #                     # get numerical grad f. W[i, j]
-    #                     w_gradsNum[i, j] = lossDiff
-    #                     w_perturb[i, j] = 0
+                    # perturb weight vector negatively
+                    # and compute cost
+                    w_tmp = w_0 - w_perturb
+                    self.weights[name] = w_tmp
+                    _, cost1 = self.computeCost(X, Y, lambd)
+                
+                    # perturb weight vector positively
+                    # and compute cost
+                    w_tmp = w_0 + w_perturb
+                    self.weights[name] = w_tmp
+                    _, cost2 = self.computeCost(X, Y, lambd)
+                    lossDiff = (cost2 - cost1) / (2 * eps)
+                    
+                    # get numerical grad f. W[i, j]
+                    w_gradsNum[i, j] = lossDiff
+                    w_perturb[i, j] = 0
+        
+            # save grads
+            gradsDict[name] = w_gradsNum
             
-    #             # reset weigth vector
-    #             self.layers[layerIdx][name] = w_0
-    #             layerDict[name] = w_gradsNum
-    #         gradsList.append(layerDict)
+            # reset weigth vector
+            self.weights[name] = w_0
             
-    #     return gradsList
+        return gradsDict
     
     def train(
             self, 
@@ -323,7 +321,7 @@ class recurrentNeuralNetwork:
         grads = self.computeGrads(X, Y, lambd)
         for key, weight in self.weights.items():
             # clip gradient
-            grads[key] = np.clip(grads[key], -5, 5)
+            grads[key] = np.clip(grads[key], -2, 2)
             
             # calculate momentum
             self.momentum[key] += np.square(grads[key])

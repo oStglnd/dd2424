@@ -199,11 +199,12 @@ with open(results_path + 'loss_{}'.format(version), 'wb') as fo:
     )
 
 # recurrentNet.weights = weights_best
+recurrentNet.hprev = np.zeros(shape=(m, 1))
 sequence = recurrentNet.synthesizeText(
     x0=X_blocks[0][0][:1], 
     n=300,
-    T=1.0,
-    theta=1.0
+    T=1.2,
+    theta=0.9
 )
 
 # convert to chars and print sequence

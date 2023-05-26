@@ -28,70 +28,33 @@ for fname in fnames:
         trainLossDict[fname] = np.array(results['train'])[:41548] / 25
         valLossDict[fname] = np.array(results['val'])[:41548] / 25
 
-plotData = pd.DataFrame(valLossDict)
 
-sns.relplot(
-    data=plotData[['v2', 'v4', 'v6']],
-    kind='line',
-    dashes=False,
-    markers=False,
-    palette='Blues',
-    linewidth=1.5
-)
+# plot LOSS
+plt.plot(trainLossDict['v3'], 'b', linewidth=1.5, alpha=1.0, label='AdaGrad, $m=100$, $sl=25$')
+plt.plot(trainLossDict['v5'], 'm', linewidth=1.5, alpha=1.0, label='AdaGrad, $m=200$, $sl=50$')
+plt.plot(trainLossDict['v4'], 'r', linewidth=1.5, alpha=1.0, label='Adam, $m=100$, $sl=25$')
+plt.plot(trainLossDict['v6'], 'g', linewidth=1.5, alpha=1.0, label='Adam, $m=200$, $sl=50$')
 
-plt.xlim(0, 45000)
-plt.ylim(2.0, 4.0)
-plt.xlabel('Steps')
-plt.ylabel('Loss', rotation=0, labelpad=15)
-plt.title('Validation loss for Adam')
-plt.savefig(plot_path + 'loss_comp_adam.png', dpi=200, bbox_inches='tight')
+# plt.ylim(0.5,2.5)
+plt.xlim(0, len(trainLossDict['v1'])-1)
+plt.xlabel('Epoch')
+# plt.ylabel('%', rotation=0, labelpad=20)
+plt.title('Training loss for RNN variations')
+plt.legend(loc='upper right')
+plt.savefig(plot_path + 'loss_train_comp_rnn.png', dpi=200)
 plt.show()
 
-sns.relplot(
-    data=plotData[['v1', 'v3', 'v5']],
-    kind='line',
-    dashes=False,
-    markers=False,
-    palette='crest',
-    linewidth=1.5,
-    legend='full'
-)
+# plot LOSS
+plt.plot(valLossDict['v3'], 'b', linewidth=1.5, alpha=1.0, label='AdaGrad, $m=100$, $sl=25$')
+plt.plot(valLossDict['v5'], 'm', linewidth=1.5, alpha=1.0, label='AdaGrad, $m=200$, $sl=50$')
+plt.plot(valLossDict['v4'], 'r', linewidth=1.5, alpha=1.0, label='Adam, $m=100$, $sl=25$')
+plt.plot(valLossDict['v6'], 'g', linewidth=1.5, alpha=1.0, label='Adam, $m=200$, $sl=50$')
 
-plt.xlim(0, 45000)
-plt.ylim(2.0, 4.0)
-plt.xlabel('Steps')
-plt.ylabel('Loss', rotation=0, labelpad=15)
-plt.title('Validation loss for AdaGrad')
-plt.savefig(plot_path + 'loss_comp_adagrad.png', dpi=200, bbox_inches='tight')
+# plt.ylim(0.5,2.5)
+plt.xlim(0, len(valLossDict['v1'])-1)
+plt.xlabel('Epoch')
+# plt.ylabel('%', rotation=0, labelpad=20)
+plt.title('Validation loss for RNN variations')
+plt.legend(loc='upper right')
+plt.savefig(plot_path + 'loss_val_comp_rnn.png', dpi=200)
 plt.show()
-
-# pDropAcc = plotData.groupby('pDrop').mean()['acc'] * 100
-# mAcc = plotData.groupby('m').mean()['acc'] * 100
-
-# # plot dropout accuracy
-# sns.barplot(
-#     x=pDropAcc.index, 
-#     y=pDropAcc.values, 
-#     palette='magma'
-# )
-
-# plt.ylim(45, 55)
-# plt.xlabel('Dropout rate, $p_{drop}$')
-# plt.ylabel('%')
-# plt.title('Mean accuracy per dropout rates')
-# plt.savefig(plot_path + 'compDropout.png', dpi=400)
-# plt.show()
-
-# # plot m accuracy
-# sns.barplot(
-#     x=mAcc.index.astype('int64'), 
-#     y=mAcc.values, 
-#     palette='viridis'
-# )
-
-# plt.ylim(45, 55)
-# plt.xlabel('Number of hidden nodes, $m$')
-# plt.ylabel('%')
-# plt.title('Mean accuracy per layer width')
-# plt.savefig(plot_path + 'compLayerM.png', dpi=400)
-# plt.show()

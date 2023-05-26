@@ -8,7 +8,7 @@
 \usepackage[algo2e]{algorithm2e}
 \fontfamily{cmr}
 
-\title{DD2424 - Assignment 3}
+\title{DD2424 - Assignment 3 (bonus)}
 \author{Oskar Stigland \\ stigland@kth.se}
 
 \pagestyle{fancy}
@@ -24,7 +24,7 @@
 		\begin{center} 
 			
 			\rule{\linewidth}{0.5mm}\\[0.5 cm]
-			{ \huge \bfseries DD2424 - Assignment 3}\\[0.3 cm] % Title of your document
+			{ \huge \bfseries DD2424 - Assignment 3 (bonus)}\\[0.3 cm] % Title of your document
 			\rule{\linewidth}{0.5mm}\\[1 cm]
 					
 			\small\vfill
@@ -34,7 +34,7 @@
 			\vspace{1cm}
 			\begin{minipage}{10cm}
 				
-				I have implemented \texttt{batch normalization} and trained a $k$-layer network using cyclical learning rates. For the $3$-layer network with \texttt{batch normalization} and $50$ nodes in each hidden layer, I have implemented a $\lambda$-search and then trained the top-performing parameter setting for $3$ cycles, for which I achieved a $53.60$\% accuracy on the test set. However, this was still lower than for the standard $\lambda = 0.005$, for which accuracy on the test set was $53.76$\% with \texttt{batch normalization}. For the $9$-layer network, the corresponding performance with and without \texttt{batch normalization} was received $50.83$\% and $46.35$\%, respectively. However, as is clarified in the report, I have not achieved a perfect match for the analytical and numerical gradient calculations. More on this below.\\\\
+				For this extension,  I have explored \texttt{batch normalization} further, looking at \texttt{precise batch normaliztion} and \texttt{adaptive batch normalization}. The improvements seem to be marginal. Then, I have also attempted to increase the efficiency and performance when training a deep network,  specifically testing variants of a network with $7$ hidden layers - one similar to that in the assignment, as well as a deeper variants with more hidden units. I have attempted to train these networks with a cyclical learning rate as well as attempting to gauge the improvements of instead using \texttt{Adam} and \texttt{AdaGrad}.\\\\
 %
 	The code for the assignment has been written in \texttt{python}. I have implemented the neural network as a class. For the hand-in, all of the code has been put toghether in a main file with all the functions and the class declared at the top. For the hand-in, I have also commented out the saving of generated figures and results in JSON files, as well as omitting some of the case-specific testing and gradient testing.
 			\end{minipage}
@@ -57,70 +57,38 @@
 
 \newpage
 
-\subsection*{Checking gradients}
+\subsection*{Exploring \texttt{batch normalization} further}
+	My initial extension to the third assignment is a further exploration of \texttt{batch normalization}, for which I have looked into so-called precise and \texttt{adaptive batch normalization}, respectively. For all experiments in this first section, I have used a $4$-layer neural network with $100$ units in each layer and $\lambda = 0.01$, with a cyclical learning rate, training for $30$ epochs with $\eta_{min} = 1e-4$, $\eta_{max} = 1e-2$ and \texttt{ns}$=900$.
 
-	In order to validate the anaytic gradient computations, I compared the analytically computed gradients with numerically computed gradients on a subset of the weights of a large subset of the training data using $h = 10^{-5}$.  I got that
-	$$\vert\vert \nabla_{\bm{w}} \bm{J}- \nabla_{\bm{w}} \bm{J}^{\text{numerical}} \vert\vert_{\infty} < 10^{-9}, \quad \forall\bm{w} \in \bm{W}_k$$
-	where $\bm{W}_k$ is the full set of weights for the final layer, including also the weights in the bias vector. I also had that
-	$$\vert\vert \nabla_{\bm{w}} \bm{J} - \nabla_{\bm{w}} \bm{J}^{\text{numerical}} \vert\vert_{\infty} < 10^{-9}, \quad \forall\bm{w} \in \bm{\gamma}_{k-1}, \bm{\beta}_{k-1}$$
-	where $\bm{\gamma}_{k-1}, \bm{\beta}_{k-1}$ are the full set of weight in the scale, $\gamma_{k-1}$, and shift, $\beta_{k-1}$, for the next-to-last layer, i.e. $\ell = k-1$. However, for the remaining weights in the network the difference was on the order of $10^{-2}$. The issue seems to arise when the gradients are propagated through the batch normalization, i.e. refered to as the \texttt{batchNormBackPass}. I have turned my code inside out several times, but can not seem to find the issue. It might also be that there is an issue in the numerical gradient calculations. When training a $5$-layer network with $[50, 50, 20, 30]$ hidden nodes - as well as a $9$-layer network with the same specs as in the assignment description - on a small subset of the training data with $\vert D\vert = 100$ and $500$ epochs, not using any regularization, I get the following results:
+\subsubsection*{Precise \texttt{batch normalization}}
+	For \texttt{precise batch normalization}, I computed the layer-to-layer normalization parameters at for each $20$th batch, such that after e.g. $20$ batches, the parameters would be computed for those $20$ preceding batches, and so on for $100$ batches for each epoch. Then, after each epoch I computed the normalization parameters on the entire training dataset and checked the accuracy on the testing set. The results are provided as a comparison with \texttt{adaptive batch normalization} and vanilla \texttt{batch normalization} in a figure below. The effect seems to be marginal with respect to loss metrics and the testing accuracy. The loss curve is perhaps slightly smoother.
+
+\subsubsection*{Adaptive \texttt{batch normalization}}
+	For \texttt{adaptive batch normalization}, I saved the normalization parameters after each epoch and recomputed them on the testing dataset. For this latter part, I also initially used an image flip probability of $p=0.5$ at each epoch when comuting the parameters. Again, the effects are very marginal - perhaps even bordering on indiscernible. To compare the results, I have plotted the training loss and testing accuracies for vanilla \texttt{batch normalization}, \texttt{precise batch normalization}, \texttt{adaptive batch normalization} and a combined approach, with an image flip probability of $p=0.1$. For the exponential moving average, $\alpha=0.8$ is used.
 	\begin{figure}[h!]
 		\centering
-		\includegraphics[width=7cm]{../plots/grad_test_5layer.png}
-		\includegraphics[width=7cm]{../plots/grad_test_9layer.png}
-		\caption{Loss and cost for $5$-layer and $9$-layer network using \texttt{batch normalization} and $\eta=0.01$, $\lambda=0.0$, on $D\subset \bm{X}$, $\vert D\vert = 100$}
-	\end{figure}\\
-	Thus, I am confident the analytically computed gradients are \textbf{not} entirely bug free. Especially, the loss and cost gets increasingly unstable as the number of layers increase. However, despite the analytical gradients not being entirely bug-free, the multi-layer network seems to learn how to classify the CIFAR-10 fairly well, with testing accuracy above $50$\% during a normal training procedure with batch normalization and a cyclical learning rate. \\\\
-%
-For the $k$-layer network \textbf{without} \texttt{batch normalization}, the analytical gradients are seemingly bug free, with pairwise absolute difference between analytically and numerically computed gradients on the order of $10^{-10}$ for all weights.
+		\includegraphics[width=7cm]{../plots/acc_comp_bn.png}
+		\includegraphics[width=7cm]{../plots/loss_comp_bn.png}	
+		\caption{Testing accuracy and training loss for four variations on \texttt{batch normalization}, trained for $30$ epochs with a cyclical learning rate and a $4$-layer network with $100$ nodes in each layer and $\lambda = 0.01$.}
+ 	\end{figure}\\
+	As is evident from the figure, there is no clear improvement for any of the models. The three modifications (precise, adaptive and combined) seem to achieve a slight bump in accuracy towards the end as compared to the vanilla implementation - but it is indeed slight. All models achieve a maximum accuracy of some $\sim55$\%. 
 
 \newpage
-\subsection*{The effects of \texttt{batch normalization}}
-\vspace{0.5cm}
-
-\subsubsection*{Training a $3$-layer network}
-	For the $3$-layer network, there is no discernable difference in terms of the performance of the networks with respect to the accuracy on the test dataset. In fact, omitting \texttt{batch normalization} seems to result in a more stable training procedure. 
+\subsection*{Improving training for a deep network}
+	To test different optimization paradigms and potentially improve the training process for a deep network, I have ventured into testing \texttt{Adam} with a fixed learning rate and \texttt{AdaGrad} with a decaying learning rate, which decays according to
+	$$\eta_n = \eta_0 \times \exp(-\Delta\eta \times t)$$
+	where $\delta\eta$ is the decay rate, set to $\Delta\eta = 10^{-4}$, and $\eta_0 = 0.01$. For \texttt{Adam}, we have a fixed $\eta = 0.001$. Further, for this particular experiment, I have chosen to use \texttt{adaptive batch normalization} and for the exponential moving average I use $\alpha = 0.8$. Additionally, I have also employed \texttt{He} initialization in order to improve gradient calculations across the training process, and $\lambda = 0.01$. For the model, I have used $7$ hidden layers with two variations on depth:
+	\begin{align*}
+		\bm{m}_1 &= [50, 50, 50, 20, 20, 10, 10] \\
+		\bm{m}_2 &= [100, 100, 100, 50, 50, 20, 20]
+	\end{align*}
+	The results for all models are presented in the figures below.
 	\begin{figure}[h!]
 		\centering
-		\includegraphics[width=7cm]{../plots/loss_comp_3layer.png}
-		\includegraphics[width=7cm]{../plots/acc_comp_3layer.png}
-		\caption{Loss and accuracy for $3$-layer network with and without \texttt{batch normalization}, using $\lambda=0.005$, and a cyclical learning rate with $\eta_{min} = 10^{-5}$ and $\eta_{max} = 10^{-1}$.}
-	\end{figure}
-\subsubsection*{Training a $9$-layer network}
-	There is a clear difference when implementing and omitting \texttt{batch normalization} for the $9$-layer network. In the former case, the network achieves an accuracy on the test dataset slightly above $50$\%, while the corresponding accuruacy in the latter case is on the order of $45$\%. There is also a clear difference in terms of the loss, where the network trained with \texttt{batch normalization} achieves a lower loss across the training process. That is, the network with \texttt{batch normalization} achieves better performance and learns significantly faster compared to the network without it.
-	\begin{figure}[h!]
-		\centering
-		\includegraphics[width=7cm]{../plots/loss_comp_9layer.png}
-		\includegraphics[width=7cm]{../plots/acc_comp_9layer.png}
-		\caption{Loss and accuracy for $9$-layer network with and without \texttt{batch normalization}, using $\lambda=0.005$, and a cyclical learning rate with $\eta_{min} = 10^{-5}$ and $\eta_{max} = 10^{-1}$.}
-	\end{figure}
-
-\newpage
-\subsection*{Conducting a $\lambda$-search}
-	I conducted a search for an optimal $\lambda$ by computing $10^l$ where
-	$$l = l_{min} + (l_{max} - l_{min}) \cdot u, \quad u\sim\text{Uniform}(0, 1)$$
-	and $l_{min} = -4$ and $l_{max} = -2$, by sampling $u$ for a number of iterations and training for $2$ cycles per iteration. I achieved the best highest accuracy on the test dataset with $\lambda = 0.0093$. Then, I trained a network with $\lambda = 0.009$ for $3$ cycles and attained an accuracy of $53.60$\%. The loss, cost and accuracy are plotted below. In general, it seems that the multi-layer network with \texttt{batch normalization} benefits from a higher rate of regularization in comparison to the network in the previous assignment, where I found an optimal $\lambda$ to be more on the order of $\leq 0.0002$. This might, of course, be primarily due to the inclusion of more layers, rather than the effect of \texttt{batch normalization}. And while $53.60$\% is a fair result for a $3$-layer network, it should be noted that this was the top-performing network for the particular $\lambda$-search that I conducted, and that a network with $\lambda = 0.005$ actually performed slightly better in terms of accuracy on the test data.
-
-	\begin{figure}[h!]
-		\centering
-		\includegraphics[width=7cm]{../plots/loss_lambdaOptimal.png}
-		\includegraphics[width=7cm]{../plots/cost_lambdaOptimal.png}
-		\includegraphics[width=8cm]{../plots/acc_lambdaOptimal.png}
-		\caption{Loss , cost and testing accuracy for $3$-layer neural network with batch normalization and $m = 50$ nodes in each hidden layer, using $\lambda=0.009$, $\eta_{min}=10^{-5}$,  $\eta_{max}=10^{-1}$, and $ns = 2250$ for $3$ cycles.}
- 	\end{figure}
-
-\newpage
-\subsection*{Sensitivity to initialization}
-	When we decrease the variance in the random normal initialization of $\bm{W}$, we get an increasingly poor training performance in the case where \texttt{batch normalization} is omitted. In the second case, where $\bm{W}$ are initialized with $\mathcal{N}(0, 0.001)$, the network seems to start learning first after some $4000-5000$ steps. Eventually, the achieved accuracy is very similar to that of the network with \texttt{batch normalization}. However, in the third case, where $\bm{W}$ are initialized with $\mathcal{N}(0, 0.0001)$, there is in fact no learning whatsoever, even after the full $3$ cycles. For the corresponding network with \texttt{batch normalization}, the loss during training and accuracy during testing seems to be pretty much equal as that of the two previous cases. Hence, this clearly demonstrates the value of using \texttt{batch normalization} - as well as the importance of appropriate weight initialization.
-	\begin{figure}[h!]
-		\centering
-		\includegraphics[width=7cm]{../plots/loss_comp_sigma1.png}
-		\includegraphics[width=7cm]{../plots/acc_comp_sigma1.png}
-		\includegraphics[width=7cm]{../plots/loss_comp_sigma2.png}
-		\includegraphics[width=7cm]{../plots/acc_comp_sigma2.png}
-		\includegraphics[width=7cm]{../plots/loss_comp_sigma3.png}
-		\includegraphics[width=7cm]{../plots/acc_comp_sigma3.png}
-		\caption{Loss and accuracy for $3$-layer network with and without \texttt{batch normalization}, using $\lambda=0.005$, and a cyclical learning rate with $\eta_{min} = 10^{-5}$ and $\eta_{max} = 10^{-1}$, as well as random normal initialization for $\bm{W}$, with $\sigma\in\{10^{-1}, 10^{-3}, 10^{-4}\}$.}
-	\end{figure}
+		\includegraphics[width=7cm]{../plots/acc_comp_deep.png}
+		\includegraphics[width=7cm]{../plots/loss_comp_deep.png}	
+		\caption{Testing accuracy and training loss for deep networks, trained for $50$ epochs with a cyclical learning rate, \texttt{AdaGrad} or \texttt{Adam}.}
+ 	\end{figure}\\
+	In this particular case, the wide network, i.e. with $\bm{m}_2$ and \texttt{AdaGrad} outperforms the others - including the same network with \texttt{Adam} with respect to the training loss. However, the accuracy is more or less identical for the two cases. Surprisingly, seems also the cyclical learning rate scheme reaches a similar accuracy with $\bm{m}_2$ after $50$ epochs. However, \texttt{AdaGrad} and \texttt{Adam} provide more stable training, which is evident from both the accuracy and loss plots, although the final result is no dramatic improvement over the cyclical learning rate. Looking at the figure, it is evident that hidden layers with more units perform better, and that models train with \texttt{Adam} and \texttt{AdaGrad} converge much faster than when a cyclical learning rate is used. 
 
 \end{document}

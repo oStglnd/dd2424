@@ -524,8 +524,8 @@ def main():
     m = 200
     sigma = 0.01
     initialization = 'He'
-    optimizer = ''
-    eta = 0.01
+    optimizer = 'adam'
+    eta = 0.001
     diverse = True
     
     recurrentNet = RNN(

@@ -67,8 +67,8 @@ K  = len(keyToChar)
 m = 200
 sigma = 0.01
 initialization = 'He'
-optimizer = ''
-eta = 0.01
+optimizer = 'adam'
+eta = 0.001
 diverse = True
 
 recurrentNet = RNN(
@@ -98,7 +98,7 @@ block_n = 0
 epoch_n = 0
 
 print ('\n------EPOCH {}--------\n'.format(epoch_n))
-while epoch_n < 10:
+while epoch_n < 5:
     if diverse:
         np.random.shuffle(X_blocks)
     
@@ -135,7 +135,7 @@ while epoch_n < 10:
                     x0=block[e+1][:1], 
                     n=250,
                     T=1.0,
-                    theta=0.6
+                    theta=0.9
                 )
                 
                 # convert to chars and print sequence
@@ -177,10 +177,11 @@ steps = [step * block_size for step in range(len(trainLossHist))]
 plt.plot(steps, trainLossHist, 'r', linewidth=1.5, alpha=1.0, label='Training')
 plt.plot(steps, valLossHist, 'g', linewidth=1.5, alpha=1.0, label='Validation')
 plt.xlim(0, steps[-1])
-plt.ylim(1.5,4.0)
+# plt.ylim(1.5,4.0)
+plt.ylim(30,)
 plt.xlabel('Steps')
 plt.ylabel('', rotation=0, labelpad=20)
-plt.title('Smooth loss for $10$ epochs')
+plt.title('Smooth loss for $5$ epochs')
 plt.legend(loc='upper right')
 plt.savefig(plot_path + 'rnn_loss_{}.png'.format(version), dpi=200)
 plt.show()
@@ -203,7 +204,7 @@ recurrentNet.hprev = np.zeros(shape=(m, 1))
 sequence = recurrentNet.synthesizeText(
     x0=X_blocks[0][0][:1], 
     n=300,
-    T=1.2,
+    T=0.5,
     theta=0.9
 )
 

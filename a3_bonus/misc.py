@@ -90,3 +90,37 @@ def cyclicLearningRate(
         eta = etaMax - (timeStep - (2 * l + 1) * stepSize) / stepSize * (etaMax - etaMin)
     
     return eta
+
+def imgFlip(X: np.array, prob: float) -> np.array:
+    """
+    Parameters
+    ----------
+    X : nxd flattened img. array
+    angle : int
+
+    Returns
+    -------
+    X : nxd flattened img. array w. some flipped inputs
+    """
+    # get shape
+    n, d = X.shape
+    
+    # get sampls along idx axis
+    # and convert to boolean array
+    idxs = np.random.rand(n) < prob
+    
+    # split data
+    X_flipped = X[idxs].copy()
+    N = len(X_flipped)
+    
+    # flip selected data
+    X_flipped = X_flipped.reshape((N, 3, 32, 32))
+    X_flipped = np.flip(X_flipped, axis=3).reshape((N, d))
+
+    # concatenate back into one array
+    X[idxs] = X_flipped
+    
+    # delete flipped imgs
+    del X_flipped
+    
+    return X

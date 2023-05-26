@@ -29,14 +29,14 @@ class AdamOpt:
     def step(self, weight, grad, t):     
         # update fist moment and correct bias
         self.m[weight] = self.calcMoment(
-            self.beta1 ** t,
+            self.beta1**t,
             self.m[weight], 
             grad
         )
         
         # update second moment and correct bias
         self.v[weight] = self.calcMoment(
-            self.beta2 ** t,
+            self.beta2**t,
             self.v[weight], 
             np.square(grad)
         )

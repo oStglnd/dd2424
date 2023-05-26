@@ -3,6 +3,79 @@
 import numpy as np
 from misc import softMax
 
+class AdamOpt:
+    def __init__(
+            self,
+            beta1: float,
+            beta2: float,
+            eps: float,
+            layers: list,
+        ):
+        # save init params
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        
+        # init dicts for saving moments
+        self.m, self.v = [], []
+        
+        # init moments
+        for idx, layer in enumerate(layers):
+            self.m.append({})
+            self.v.append({})
+            for name, weight in layer.items():
+                self.m[idx][name] = np.zeros(weight.shape)
+                self.v[idx][name] = np.zeros(weight.shape)
+            
+    def calcMoment(self, beta, moment, grad):
+        newMoment = beta * moment + (1 - beta) * grad
+        return newMoment
+    
+    def step(self, layerIdx, weight, grad, t):     
+        # update fist moment and correct bias
+        self.m[layerIdx][weight] = self.calcMoment(
+            self.beta1,
+            self.m[layerIdx][weight], 
+            grad
+        )
+        
+        # update second moment and correct bias
+        self.v[layerIdx][weight] = self.calcMoment(
+            self.beta2,
+            self.v[layerIdx][weight], 
+            np.square(grad)
+        )
+        
+        mCorrected = self.m[layerIdx][weight] / (1 - self.beta1 ** t + self.eps)
+        vCorrected = self.v[layerIdx][weight] / (1 - self.beta2 ** t + self.eps)
+        stepUpdate = mCorrected / (np.sqrt(vCorrected) + self.eps)
+        return stepUpdate
+    
+class AdaGrad:
+    def __init__(
+            self,
+            eps: float,
+            layers: list
+        ):
+        # save init params
+        self.eps = eps
+        
+        # init dicts for saving moments
+        self.m = []
+        
+        # init moments
+        for idx, layer in enumerate(layers):
+            self.m.append({})
+            for name, weight in layer.items():
+                self.m[idx][name] = np.zeros(weight.shape)
+    
+    def step(self, layerIdx, weight, grad, t):
+        
+        self.m[layerIdx][weight] += np.square(grad)
+        stepUpdate = grad / (np.sqrt(self.m[layerIdx][weight]) + self.eps)
+        
+        return stepUpdate
+
 class neuralNetwork:
     def __init__(
             self, 
@@ -11,7 +84,10 @@ class neuralNetwork:
             m: list,
             batchNorm: bool,
             alpha: float,
+            precise: bool,
+            p_dropout: float,
             initialization: str,
+            optimizer: str,
             sigma: float,
             seed: int
         ):
@@ -27,13 +103,17 @@ class neuralNetwork:
         # init batchNorm param
         self.batchNorm = batchNorm
         self.alpha = alpha
+        self.precise = precise
+        
+        # init dropout 
+        self.p_dropout = p_dropout
         
         # iterate over weight dims
         np.random.seed(seed)
         for m1, m2 in zip(weightList[:-1], weightList[1:]):
             layer = {}
             
-            if initialization == 'He':
+            if initialization.lower() == 'he':
                 scale = 2/np.sqrt(m1)
             else:
                 scale = sigma
@@ -66,6 +146,23 @@ class neuralNetwork:
         if self.batchNorm:
             del self.layers[-1]['gamma'], self.layers[-1]['beta']
      
+        
+        # init optimizer
+        if optimizer.lower() == 'adam':
+            self.optimizer = AdamOpt(
+                beta1=0.9,
+                beta2=0.999,
+                eps=1e-12,
+                layers=self.layers
+            )
+        elif optimizer.lower() == 'adagrad':
+            self.optimizer = AdaGrad(
+                eps=1e-12,
+                layers=self.layers
+            )
+        else:
+            self.optimizer = None
+        
     def initBatchNorm(
             self,
             X: np.array
@@ -123,6 +220,16 @@ class neuralNetwork:
         vList = []
         
         for layer in self.layers[:-1]:
+            # # get binary mask for dropout
+            # if train and (self.p_dropout > 0):
+            #     mask = np.random.binomial(
+            #         n=1,
+            #         p=1-self.p_dropout,
+            #         size=layer['b'].shape
+            #     )
+            # else:
+            #     mask = np.ones(shape=layer['b'].shape)
+            
             s = layer['W'] @ hList[-1] + layer['b']  
             sList.append(s.copy())
             
@@ -141,10 +248,13 @@ class neuralNetwork:
                 sListNorm.append(s.copy())
                 s = layer['gamma'] * s + layer['beta']
                 
-                # update params for batchNorm
-                self.updateBatchNorm(muList, vList)
-                
-            hList.append(np.maximum(0, s))
+                # update params for batchNorm if NOT precise
+                if not self.precise:
+                    self.updateBatchNorm(muList, vList)
+            
+            h = np.maximum(0, s)
+            # h = (1 - train * self.p_dropout)**-1 * mask * h
+            hList.append(h)
         
         s = self.layers[-1]['W'] @ hList[-1] + self.layers[-1]['b']
         P = softMax(s)
@@ -435,7 +545,8 @@ class neuralNetwork:
             self, 
             X: np.array, 
             Y: np.array, 
-            lambd: float, 
+            lambd: float,
+            step: int,
             eta: float
         ):
         """
@@ -453,7 +564,17 @@ class neuralNetwork:
         else:
             grads = self.computeGrads(X, Y, lambd)
         
-        for grad, layer in zip(grads, self.layers):
+        for layerIdx, (grad, layer) in enumerate(zip(grads, self.layers)):
             for weightKey, weightVals in layer.items():
                 if weightKey not in ['mu', 'v']:
-                    weightVals -= eta * grad[weightKey]
+                    
+                    if self.optimizer:
+                        stepUpdate = self.optimizer.step(
+                            layerIdx,
+                            weightKey, 
+                            grad[weightKey], 
+                            step
+                        )
+                        weightVals -= eta * stepUpdate
+                    else:
+                        weightVals -= eta * grad[weightKey]
